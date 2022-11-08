@@ -1,5 +1,5 @@
 Package: PEMmodelr
-Title: Build and evaluate machine-learning predictive ecosystem maps
+Title: Build and evaluate models for machine-learning predictive ecosystem maps
 Version: 0.0.0.9000
 Authors@R: c(
     person("Gen", "Perkins", , "first.last@example.com", role = c("aut", "cre")),
