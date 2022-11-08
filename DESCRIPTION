@@ -1,11 +1,16 @@
-Package: PEMr
-Title: What the Package Does (One Line, Title Case)
+Package: PEMmodelr
+Title: Build and evaluate machine-learning predictive ecosystem maps
 Version: 0.0.0.9000
 Authors@R: c(
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre")),
+    person("Gen", "Perkins", , "first.last@example.com", role = c("aut", "cre")),
+    person("Colin", "Chisholm", , "first.last@example.com", role = c("aut")),
+    person("Kiri", "Daust", , "first.last@example.com", role = c("aut"),
+    person("Will", "MacKenzie", , "will.mackenzie@gov.bc.ca", role = c("aut")),
     person("Province of British Columbia", role = "cph")
   )
-Description: What the package does (one paragraph).
+Description: This package takes data prepared in from the PEMprepr and PEMsamplr packages
+and iteratively builds, tests and optimizes machine learning models by a leave-one-out design.
+Returns final optimized machine learning model for application in PEMmapr to generate final maps
 License: Apache License (== 2.0) | file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
