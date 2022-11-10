@@ -8,9 +8,9 @@ Authors@R: c(
     person("Will", "MacKenzie", , "will.mackenzie@gov.bc.ca", role = c("aut")),
     person("Province of British Columbia", role = "cph")
   )
-Description: This package takes data prepared in from the PEMprepr and PEMsamplr packages
+Description: This package takes data prepared from the PEMprepr and PEMsamplr packages
 and iteratively builds, tests and optimizes machine learning models by a leave-one-out design.
-Returns final optimized machine learning model for application in PEMmapr to generate final maps
+Returns final optimized machine learning model for application of functions in the PEMmapr to generate final maps
 License: Apache License (== 2.0) | file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
