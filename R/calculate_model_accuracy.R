@@ -20,49 +20,52 @@ library(dplyr)
 # data <- test.pred
 # theta = 0.5
 pred_data = fread("./temp_data/pred_test.csv")
-  fmat = fread("./temp_data/fuzzy_matrix_basic_updated.csv")
+fuzzmatx = fread("./temp_data/fuzzy_matrix_basic_updated.csv")
   theta = 0.5
 
 
-report_model_accuracy <- function(pred_data, fmat, theta = 0.5) {
+report_model_accuracy <- function(pred_data, fuzzmatx, theta = 0.5) {
 
   ##1.  Selects max value between primary and secondary calls
-  data1 <- dplyr::left_join(data, fMat, by = c("mapunit1" = "mapunit", ".pred_class" = "Pred")) %>%
+
+  preds = c("id","mapunit1", "mapunit2", ".pred_class")
+  pred_data <- pred_data %>% dplyr::select(any_of(preds))
+  data1 <- dplyr::left_join(pred_data, fuzzmatx, by = c("mapunit1" = "target", ".pred_class" = "compare")) %>%
+    replace(is.na(.), 0) %>%
+    dplyr::mutate_if(is.character, as.factor) %>%
+    dplyr::mutate(p_fuzzval = fuzzval) %>%
+    dplyr::select(-fuzzval)
+  data2 <- dplyr::left_join(data1, fMat, by = c("mapunit2" = "target", ".pred_class" = "compare")) %>%
     dplyr::mutate_if(is.character, as.factor) %>%
     replace(is.na(.), 0) %>%
-    dplyr::mutate(p_fVal = fVal) %>%
-    dplyr::select(-fVal)
-  data2 <- dplyr::left_join(data1, fMat, by = c("mapunit2" = "mapunit", ".pred_class" = "Pred")) %>%
-    dplyr::mutate_if(is.character, as.factor) %>%
-    replace(is.na(.), 0) %>%
-    dplyr::mutate(alt_fVal = fVal)
+    dplyr::mutate(alt_fuzzval = fuzzval)
 
   ##2. selects the neighbour with max value
   data <- data2 %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(pa_fVal = max(p_fVal, alt_fVal)) %>%
+    dplyr::mutate(pa_fuzzval = max(p_fuzzval, alt_fuzzval)) %>%
     dplyr::group_by(id) %>%
-    dplyr::top_n(1, abs(pa_fVal)) %>%
+    dplyr::top_n(1, abs(pa_fuzzval)) %>%
     dplyr::distinct(id, .keep_all = TRUE) %>%
     data.frame() %>%
-    dplyr::select(-fVal, -alt_fVal)
+    dplyr::select(-fuzzval, -alt_fuzzval)
 
   data <- data %>%
     dplyr::mutate_if(is.factor, as.character) %>%
     dplyr::mutate(
-      p_Val = dplyr::ifelse(mapunit == .pred_class, 1, 0),
-      alt_Val = dplyr::ifelse(mapunit2 == .pred_class, 1, 0)
+      p_Val = ifelse(mapunit1 == .pred_class, 1, 0),
+      alt_Val = ifelse(mapunit2 == .pred_class, 1, 0)
     ) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(pa_Val = max(p_Val, alt_Val)) %>%
     dplyr::select(-alt_Val) %>%
     dplyr::mutate_if(is.character, as.factor) %>%
     data.frame() %>%
-    dplyr::add_count(mapunit, name = "trans.tot") %>%
+    dplyr::add_count(mapunit1, name = "trans.tot") %>%
     dplyr::add_count(.pred_class, name = "pred.tot") # %>% group_by(mapunit) %>%
   # dplyr::mutate(pred.tot_pa = sum(pa_Val)) %>% ungroup()
 
-  targ.lev <- as.data.frame(levels(data$mapunit)) %>%
+  targ.lev <- as.data.frame(levels(data$mapunit1)) %>%
     dplyr::rename(levels = 1) %>%
     droplevels()
   pred.lev <- as.data.frame(levels(data$.pred_class)) %>%
@@ -71,7 +74,7 @@ report_model_accuracy <- function(pred_data, fmat, theta = 0.5) {
   add.pred.lev <- dplyr::anti_join(pred.lev, targ.lev, by = "levels")
   data <- data %>%
     dplyr::mutate(
-      mapunit.new = ifelse(.pred_class %in% add.pred.lev, as.character(.pred_class), as.character(mapunit)),
+      mapunit.new = ifelse(.pred_class %in% add.pred.lev, as.character(.pred_class), as.character(mapunit1)),
       trans.tot.new = ifelse(.pred_class %in% add.pred.lev, 0, trans.tot)
     ) %>%
     mutate_if(is.character, as.factor) %>%
@@ -79,10 +82,10 @@ report_model_accuracy <- function(pred_data, fmat, theta = 0.5) {
   #   mutate(pred.new = ifelse(mapunit.new %in% add.pred.lev, as.character(mapunit), as.character(.pred_class))) %>%
   #     mutate(mapunit = mapunit.new, .pred_class = pred.new)
   ### harmonize factor levels
-  targ.lev <- levels(data$mapunit)
+  targ.lev <- levels(data$mapunit1)
   pred.lev <- levels(data$.pred_class)
   levs <- c(targ.lev, pred.lev) %>% unique()
-  data$mapunit <- factor(data$mapunit, levels = levs)
+  data$mapunit <- factor(data$mapunit1, levels = levs)
   data$.pred_class <- factor(data$.pred_class, levels = levs)
 
   data <- data %>%
@@ -92,7 +95,7 @@ report_model_accuracy <- function(pred_data, fmat, theta = 0.5) {
 
   ### 1)machine learning stats
   acc <- data %>%
-    yardstick::accuracy(mapunit, .pred_class, na_rm = TRUE) %>%
+    yardstick::accuracy(mapunit1, .pred_class, na_rm = TRUE) %>%
     dplyr::select(.estimate) %>%
     as.numeric() %>%
     round(3)
@@ -120,9 +123,9 @@ report_model_accuracy <- function(pred_data, fmat, theta = 0.5) {
     # mutate(no.classes = length(unique(mapunit.new))) %>%
     dplyr::mutate(spat_p_correct = sum(p_Val)) %>%
     dplyr::mutate(spat_pa_correct = sum(pa_Val)) %>%
-    dplyr::mutate(spat_pf_correct = sum(p_fVal)) %>%
-    dplyr::mutate(spat_paf_correct = sum(pa_fVal)) %>%
-    dplyr::select(-id, -mapunit2, -.pred_class, -mapunit, -p_fVal, -pa_fVal, -p_Val, -pa_Val) %>%
+    dplyr::mutate(spat_pf_correct = sum(p_fuzzval)) %>%
+    dplyr::mutate(spat_paf_correct = sum(pa_fuzzval)) %>%
+    dplyr::select(-id, -mapunit2, -.pred_class, -mapunit, -p_fuzzval, -pa_fuzzval, -p_Val, -pa_Val) %>%
     ungroup() %>%
     distinct() %>%
     dplyr::mutate(spat_p = spat_p_correct / trans.tot) %>%
@@ -173,9 +176,9 @@ report_model_accuracy <- function(pred_data, fmat, theta = 0.5) {
     dplyr::select(mapunit, trans.tot, pred.tot) %>% # group_by(mapunit) %>%
     # mutate(p_correct = sum(p_Val),
     # pa_correct = sum(pa_Val),
-    # paf_correct = sum(pa_fVal)) %>%
+    # paf_correct = sum(pa_fuzzval)) %>%
     # ungroup() %>%
-    dplyr::mutate(trans.sum = sum(trans.tot)) %>% # dplyr::select(-p_Val, -pa_Val, -p_fVal, -pa_fVal) %>% distinct %>%
+    dplyr::mutate(trans.sum = sum(trans.tot)) %>% # dplyr::select(-p_Val, -pa_Val, -p_fuzzval, -pa_fuzzval) %>% distinct %>%
 
     # %>%
     mutate(no.classes = length(unique(mapunit))) %>%
@@ -224,9 +227,9 @@ report_model_accuracy <- function(pred_data, fmat, theta = 0.5) {
     dplyr::select(mapunit, trans.tot, pred.tot) %>% # group_by(mapunit) %>%
     # mutate(p_correct = sum(p_Val),
     # pa_correct = sum(pa_Val),
-    # paf_correct = sum(pa_fVal)) %>%
+    # paf_correct = sum(pa_fuzzval)) %>%
     # ungroup() %>%
-    dplyr::mutate(trans.sum = sum(trans.tot)) %>% # dplyr::select(-p_Val, -pa_Val, -p_fVal, -pa_fVal) %>% distinct %>%
+    dplyr::mutate(trans.sum = sum(trans.tot)) %>% # dplyr::select(-p_Val, -pa_Val, -p_fuzzval, -pa_fuzzval) %>% distinct %>%
 
     # %>%
     dplyr::mutate(no.classes = length(unique(mapunit))) %>%
