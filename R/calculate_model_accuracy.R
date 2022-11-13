@@ -6,36 +6,37 @@
 #' for primary+alternate+fuzzy with the same 3 theta settings
 #'
 #' @param pred_data a data.frame with mapunit1, mapunit2, and .pred columns
-#' @param fmat is the fuzzy values matrix from the map key giving partial correct points
+#' @param fuzzmatrx is the fuzzy values matrix from the map key giving partial correct points
 #' for near misses
-#' @param theta an intermediate theta setting set to default at 0.5
+#' @param theta the function always returns values for theta 0 and theta 1.
+#' The theta setting sets an intermediate theta setting to report efault set to 0.5
 #'
 #' @keywords accuracy, fuzzy sets, theta
 #' @export
 #' ##
 
-library(yardstick)
-library(janitor)
-library(dplyr)
-# data <- test.pred
-# theta = 0.5
-pred_data = fread("./temp_data/pred_test.csv")
-fuzzmatx = fread("./temp_data/fuzzy_matrix_basic_updated.csv")
-  theta = 0.5
+# library(yardstick)
+# library(janitor)
+# library(dplyr)
+# require(data.table)
+#
+# pred_data = fread("./temp_data/test_pred.csv")
+# fuzzmatrx = fread("./temp_data/fuzzy_matrix_basic_updated.csv")
+#   theta = 0.5
 
 
-report_model_accuracy <- function(pred_data, fuzzmatx, theta = 0.5) {
+report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
 
   ##1.  Selects max value between primary and secondary calls
 
   preds = c("id","mapunit1", "mapunit2", ".pred_class")
   pred_data <- pred_data %>% dplyr::select(any_of(preds))
-  data1 <- dplyr::left_join(pred_data, fuzzmatx, by = c("mapunit1" = "target", ".pred_class" = "compare")) %>%
+  data1 <- dplyr::left_join(pred_data, fuzzmatrx, by = c("mapunit1" = "target", ".pred_class" = "compare")) %>%
     replace(is.na(.), 0) %>%
     dplyr::mutate_if(is.character, as.factor) %>%
     dplyr::mutate(p_fuzzval = fuzzval) %>%
     dplyr::select(-fuzzval)
-  data2 <- dplyr::left_join(data1, fMat, by = c("mapunit2" = "target", ".pred_class" = "compare")) %>%
+  data2 <- dplyr::left_join(data1, fuzzmatrx, by = c("mapunit2" = "target", ".pred_class" = "compare")) %>%
     dplyr::mutate_if(is.character, as.factor) %>%
     replace(is.na(.), 0) %>%
     dplyr::mutate(alt_fuzzval = fuzzval)
@@ -182,7 +183,7 @@ report_model_accuracy <- function(pred_data, fuzzmatx, theta = 0.5) {
 
     # %>%
     mutate(no.classes = length(unique(mapunit))) %>%
-    dplyr::mutate(across(where(is.numeric), ~ replace_na(., 0))) %>%
+    dplyr::mutate(across(where(is.numeric), ~ tidyr::replace_na(., 0))) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(
       aspat_p = min((trans.tot / trans.tot), (pred.tot / trans.tot)),
@@ -233,7 +234,7 @@ report_model_accuracy <- function(pred_data, fuzzmatx, theta = 0.5) {
 
     # %>%
     dplyr::mutate(no.classes = length(unique(mapunit))) %>%
-    dplyr::mutate(across(where(is.numeric), ~ replace_na(., 0))) %>%
+    dplyr::mutate(across(where(is.numeric), ~ tidyr::replace_na(., 0))) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(
       aspat_pa = min((trans.tot / trans.tot), (pred.tot / trans.tot)),
@@ -279,7 +280,7 @@ report_model_accuracy <- function(pred_data, fuzzmatx, theta = 0.5) {
       aspat_paf_unit_pos = min(trans.tot, aspat_paf_total)
     ) %>%
     dplyr::ungroup() %>%
-    dplyr::mutate(across(where(is.numeric), ~ replace_na(., 0))) %>%
+    dplyr::mutate(across(where(is.numeric), ~ tidyr::replace_na(., 0))) %>%
     dplyr::mutate(
       aspat_paf_theta0 = sum(aspat_paf_unit_pos / trans.sum),
       aspat_paf_theta1 = mean(aspat_paf_pred)
@@ -301,39 +302,39 @@ report_model_accuracy <- function(pred_data, fuzzmatx, theta = 0.5) {
 
 # function to calculate the weighted metrics
 
-weight_by_transect_no <- function(acc) {
-  acc_sum <- acc %>%
-    #     acc_sum <- acc %>%
-    dplyr::filter(acc_type == "test_estimate") %>%
-    mutate(across(ends_with("overall"), ~ .x * 100)) %>%
-    mutate(across(ends_with("meanacc"), ~ .x * 100)) %>%
-    dplyr::select(
-      slice, acc_type, transect_no,
-      aspat_p_overall, aspat_p_meanacc,
-      # aspat_fp_overall,  aspat_fp_meanacc,
-      spat_p_overall, spat_p_meanacc,
-      spat_pf_overall, spat_pf_meanacc,
-      aspat_pa_overall, aspat_pa_meanacc,
-      aspat_fpa_overall, aspat_fpa_meanacc,
-      spat_pa_overall, spat_pa_meanacc,
-      spat_fpa_overall, spat_fpa_meanacc
-    ) %>%
-    distinct()
-
-  # calculate the weighted mean and st dev summary
-  acc_wt_ave <- acc_sum %>%
-    summarise(mutate(across(where(is.numeric), ~ weighted.mean(.x, transect_no, na.rm = FALSE)))) %>%
-    pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "ave_wt") %>%
-    dplyr::filter(!accuracy_type %in% c("slice", "transect_no"))
-
-  acc_wt_sd <- acc_sum %>%
-    summarise(mutate(across(where(is.numeric), ~ sqrt(wtd.var(.x, transect_no, na.rm = FALSE))))) %>%
-    pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "sd_wt") %>%
-    dplyr::filter(!accuracy_type %in% c("slice", "transect_no"))
-
-  acc_wt_sum <- left_join(acc_wt_ave, acc_wt_sd) %>%
-    filter(!accuracy_type == "transect_no")
-
-  return(acc_wt_sum)
-}
+# weight_by_transect_no <- function(acc) {
+#   acc_sum <- acc %>%
+#     #     acc_sum <- acc %>%
+#     dplyr::filter(acc_type == "test_estimate") %>%
+#     mutate(across(ends_with("overall"), ~ .x * 100)) %>%
+#     mutate(across(ends_with("meanacc"), ~ .x * 100)) %>%
+#     dplyr::select(
+#       slice, acc_type, transect_no,
+#       aspat_p_overall, aspat_p_meanacc,
+#       # aspat_fp_overall,  aspat_fp_meanacc,
+#       spat_p_overall, spat_p_meanacc,
+#       spat_pf_overall, spat_pf_meanacc,
+#       aspat_pa_overall, aspat_pa_meanacc,
+#       aspat_fpa_overall, aspat_fpa_meanacc,
+#       spat_pa_overall, spat_pa_meanacc,
+#       spat_fpa_overall, spat_fpa_meanacc
+#     ) %>%
+#     distinct()
+#
+#   # calculate the weighted mean and st dev summary
+#   acc_wt_ave <- acc_sum %>%
+#     summarise(mutate(across(where(is.numeric), ~ weighted.mean(.x, transect_no, na.rm = FALSE)))) %>%
+#     pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "ave_wt") %>%
+#     dplyr::filter(!accuracy_type %in% c("slice", "transect_no"))
+#
+#   acc_wt_sd <- acc_sum %>%
+#     summarise(mutate(across(where(is.numeric), ~ sqrt(wtd.var(.x, transect_no, na.rm = FALSE))))) %>%
+#     pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "sd_wt") %>%
+#     dplyr::filter(!accuracy_type %in% c("slice", "transect_no"))
+#
+#   acc_wt_sum <- left_join(acc_wt_ave, acc_wt_sd) %>%
+#     filter(!accuracy_type == "transect_no")
+#
+#   return(acc_wt_sum)
+# }
 
