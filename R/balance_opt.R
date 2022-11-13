@@ -6,7 +6,7 @@
 #' @return List with optimal downsample and smote
 #' @import data.table
 #' @import foreach
-#' @import recipe
+#' @import recipes
 #' @import themis
 #' @import ranger
 #' @import ParBayesianOptimization
@@ -27,41 +27,94 @@
 #'
 #' @export
 
+rawDat <- st_read("./PEM_dev/s1_clean_neighbours_allatts.gpkg")
+rawDat <- as.data.table(st_drop_geometry(rawDat))
+rawDat <- rawDat[grep("ESSFmc_",mapunit1),]
+rawDat[,c("CellNum","transect_id","data_type","transition","observer","comments","ID.1") := NULL]
+clnDat <- rawDat[,c(rep(T,6),colSums(is.na(rawDat[,-c(1:6), with = F])) == 0), with = FALSE]
+covmat <- cor(clnDat[,-(1:6), with = FALSE])
+covmat[upper.tri(covmat)] <- 0
+diag(covmat) <- 0
+clnDat <- clnDat[,c(rep(TRUE,6),!apply(covmat, 2, function(x) any(abs(x) > 0.9, na.rm = TRUE))),with = FALSE]
+fMat <- fread("./fuzzy_matrix_basic_updated.csv")
+train_data <- clnDat
 
-optimise_balance <- function(train_data,num_slice = 2, n_iters = 4){
+optimise_balance(train_data = clnDat, fuzz_matrix = fMat, num_slice = 1)
+
+optimise_balance <- function(train_data, fuzz_matrix, num_slice = 2, n_iters = 4, use.neighbours = TRUE,
+                             acc_mets = c("spat_paf_theta.5","aspat_paf_theta.5","spat_paf_theta0")){
+
+  ref_dat <- copy(train_data)
+  ref_dat[,mapunit1 := as.factor(mapunit1)]
+  print("Training raw data models...")
+  ref_acc <- foreach(k = 1:num_slice, .combine = rbind) %do% {
+    ref_train <- ref_dat[slice != k & Position == "Orig",]
+    ref_train[,c("ID","tid","mapunit2", "Position","slice") := NULL]
+    low_units <- ref_train[,.(NumUnit = .N), by = .(mapunit1)][NumUnit < 10,]
+    ref_train <- ref_train[!mapunit1 %in% low_units$mapunit1,]
+
+    if (use.neighbours) {
+      ref_test <- ref_dat[slice == k & !mapunit1 %in% low_units$mapunit1,]
+    }else{
+      ref_test <- ref_dat[slice == k & !mapunit1 %in% low_units$mapunit1 & Position == "Orig",]
+    }
+    ref_mod <- ranger(mapunit1 ~ ., data = ref_train, mtry = 26,
+                      num.trees = 151, min.node.size = 6, importance = "permutation")
+    preds <- predict(ref_mod, ref_test)
+    pred_all <- cbind(ref_test[,.(id = ID, mapunit1, mapunit2, slice)],
+                                    .pred_class = preds$predictions)
+    pred_all$mapunit1 <- as.factor(pred_all$mapunit1)
+    pred_all$.pred_class <- factor(pred_all$.pred_class,
+                                   levels = levels(pred_all$mapunit1))
+    # all_units <- unique(c(pred_all$mapunit1,pred_all$.pred_class))
+    # pred_all[,`:=`(mapunit1 = factor(mapunit1,levels = all_units),
+    #                .pred_class = factor(.pred_class, levels = all_units))]
+    acc <- report_model_accuracy(pred_all,fuzzmatrx = fuzz_matrix)
+    acc <- acc[,acc_mets]
+    acc
+  }
+  ref_acc_all <- colMeans(ref_acc)
+  ref_acc_fn <- mean(ref_acc_all)
+
   ##function to train model
-  train_mod <- function(downsample, smote, trDat = train_data, use.neighbours = T){
-    sresults <- foreach(k = num_slice, .combine = 'c') %do% {
+  train_mod <- function(downsample, smote, trDat = train_data, ref_metrix = ref_acc_fn, UN = use.neighbours){
+    sresults <- foreach(k = 1:num_slice, .combine = rbind) %do% {
       BGC_train <- trDat[slice != k & Position == "Orig",]
-      MU_count <- BGC_train[,.(NumUnit = .N), by = .(target)][NumUnit < 10,]
-      BGC_train[,target := as.factor(target)]
-      BGC_train[,c("ID","tid", "Position","slice") := NULL]
+      MU_count <- BGC_train[,.(NumUnit = .N), by = .(mapunit1)][NumUnit < 10,]
+      BGC_train <- BGC_train[!mapunit1 %in% MU_count$mapunit1,]
+      BGC_train[,mapunit1 := as.factor(mapunit1)]
+      BGC_train[,c("ID","tid","mapunit2", "Position","slice") := NULL]
 
-      if (use.neighbours) {
-        BGC_test <- trDat[slice == k & !target %in% MU_count$target,]
+      if (UN) {
+        BGC_test <- trDat[slice == k & !mapunit1 %in% MU_count$mapunit1,]
       }else{
-        BGC_test <- trDat[slice == k & !target %in% MU_count$target & Position == "Orig",]
+        BGC_test <- trDat[slice == k & !mapunit1 %in% MU_count$mapunit1 & Position == "Orig",]
       }
 
-      null_recipe <-  recipe(target ~ ., data = BGC_train) %>%
-        step_downsample(target, under_ratio = downsample) %>%
-        step_smote(target, over_ratio = smote, neighbors = 2, skip = TRUE) %>%
+      null_recipe <-  recipe(mapunit1 ~ ., data = BGC_train) %>%
+        step_downsample(mapunit1, under_ratio = downsample) %>%
+        step_smote(mapunit1, over_ratio = smote, neighbors = 2, skip = TRUE) %>%
         prep()
 
       train_data <- bake(null_recipe,new_data = NULL)
-      PEM_rf1 <- ranger(target ~ ., data = train_data, mtry = 26,
+      PEM_rf1 <- ranger(mapunit1 ~ ., data = train_data, mtry = 26,
                         num.trees = 151, min.node.size = 6, importance = "permutation")
 
       test.pred <-  predict(PEM_rf1, BGC_test)
-      test.pred <- cbind(BGC_test[,.(Position,ID, tid, target)],pred_class = test.pred$predictions)
-      test.pred <- as.data.table(test.pred)
-
-      accMet <- test.pred[,.(Correct = if(unique(target) %in% pred_class) 1 else 0),
-                          by = .(ID)]
-      accVal <- sum(accMet$Correct)/nrow(accMet)
-      accVal
+      test.pred <- cbind(BGC_test[,.(id = ID, mapunit1, mapunit2, slice)],.pred_class = test.pred$predictions)
+      test.pred$mapunit1 <- as.factor(test.pred$mapunit1)
+      test.pred$.pred_class <- factor(test.pred$.pred_class,
+                                     levels = levels(test.pred$mapunit1))
+      mod_acc <- report_model_accuracy(test.pred,fuzzmatrx = fuzz_matrix)
+      mod_acc <- mod_acc[,acc_mets]
+      mod_acc
+      # accMet <- test.pred[,.(Correct = if(unique(target) %in% pred_class) 1 else 0),
+      #                     by = .(ID)]
+      # accVal <- sum(accMet$Correct)/nrow(accMet)
     }
-    return(list(Score = mean(sresults)))
+    bal_acc <- colMeans(sresults)
+    bal_acc_fn <- mean(bal_acc)
+    return(list(Score = bal_acc_fn - ref_acc_fn))
   }
 
   ##set bounds
@@ -70,6 +123,7 @@ optimise_balance <- function(train_data,num_slice = 2, n_iters = 4){
     smote = c(0.2,0.9)
   )
 
+  print("Starting optimisation...")
   ##run optimisation
   opt_res <- bayesOpt(
     FUN = train_mod,
@@ -79,5 +133,7 @@ optimise_balance <- function(train_data,num_slice = 2, n_iters = 4){
     iters.k = 1
   )
 
-  return(getBestPars(opt_res))
+  return(opt_res)
 }
+
+
