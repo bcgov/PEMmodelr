@@ -1,7 +1,7 @@
 #' Harmonize factor levels
 #'
 #' @param target_vs_pred A data frame  with target and .pred_class columns
-#' @return List with optimal downsample and smote
+#' @return data.frame with harmonized factor levels
 #'
 #' @author
 #' @examples
