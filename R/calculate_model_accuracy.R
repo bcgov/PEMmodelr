@@ -95,13 +95,14 @@ report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::select(-pred.tot, -trans.tot.new)
 
   ### 1)machine learning stats
+  data <- harmonize_factors(data)
   acc <- data %>%
     yardstick::accuracy(mapunit1, .pred_class, na_rm = TRUE) %>%
     dplyr::select(.estimate) %>%
     as.numeric() %>%
     round(3)
   mcc <- data %>%
-    yardstick::mcc(mapunit, .pred_class, na_rm = TRUE) %>%
+    yardstick::mcc(mapunit1, .pred_class, na_rm = TRUE) %>%
     dplyr::select(.estimate) %>%
     as.numeric() %>%
     round(3)
@@ -111,7 +112,7 @@ report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
   # recall <- data %>% recall(mapunit, .pred_class, na.rm = TRUE)
   # fmeas <- data %>% f_meas(mapunit, .pred_class, na.rm = TRUE)
   kap <- data %>%
-    yardstick::kap(mapunit, .pred_class, na.rm = TRUE) %>%
+    yardstick::kap(mapunit1, .pred_class, na.rm = TRUE) %>%
     dplyr::select(.estimate) %>%
     as.numeric() %>%
     round(3)
