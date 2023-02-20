@@ -6,16 +6,16 @@
 #' Creates a hypercube label for each point from bin numbers for each raster
 #'
 #'
-#' @param type either "subsample" or "space-time"
-#' @param target_hypercube is folder location where all predictors are stored; for type space-time = future climates of AOI
-#' @param sample_hypercube for subsample a file of points; for space-time a rastfolder location of larger area
-#' @param varlist list of variable to include in hypercube
+#' @param type either "subsample", "space-space", "space-time"
+#' @param target_hypercube is folder location where all predictors are stored; for type space-time = raster for future climates of AOI
+#' @param sample_hypercube for subsample a file of points; for space-space and space-time a rastfolder location with comparative rasters
+#' @param varlist list of variables to include in hypercube
 #' @param sample_type either "number", "density'
 #' @param size the number of samples to generate or the density of points in kilometers
 #' @param method either "regular" for systematic sampling or "random"
 #' @param bins number of bins to create for each raster layer
 #' @param graph_compare TRUE/FALSE to generate a ggplot comparing target and sample distibutions for each variable
-#' @param return_spatial TRUE/FALSE to generate of geopackage where missing space
+#' @param return_spatial TRUE/FALSE to generate of 2 layers ina geopackage showing where there is missing space in the target AOI and source areas from the sample
 #' @param min_bin the minimum number of points in a bin to be considered adequately sampled
 #'
 #' @keywords subsample, covariates, predictors, raster
