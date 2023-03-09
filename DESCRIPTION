@@ -14,3 +14,5 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
+URL: https://github.com/bcgov/PEMmodelr
+BugReports: https://github.com/bcgov/PEMmodelr/issues
