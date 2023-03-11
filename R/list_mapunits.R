@@ -1,22 +1,37 @@
 #' Unique map units from primary and alternate calls
 #'
-#' Simple function that returns a list of unique map units from mapunit1 and mapunit2 fields
+#' returns a list of unique map units from mapunit1 and mapunit2 fields
 #'
-#' @param tran_dat is the transect training points
-#'
+#' @param tps dataframe of mapunits
+#' @import magrittr
+#' @import sf
+#' @import dplyr
 #' @keywords mapunit
 #' @export
-#' ##
-#
-#
-# list_mapunits <- function(tran_dat) {
-#   mapunit1_unique <- tran_dat %>%
-#     dplyr::select(mapunit1) %>%
-#     distinct()
-#   mapunit2_unique <- tran_dat %>%
-#     dplyr::select(mapunit2) %>%
-#     distinct() %>%
-#     dplyr::rename(mapunit1 = mapunit2)
-#   mapunit_unique <- rbind(mapunit1_unique, mapunit2_unique) %>% distinct()
-#   return(mapunit_unique)
-# }
+#' @examples
+#' list_mapunits(tps)
+#'
+#'
+list_mapunits <- function(tps) {
+
+  #tps = mpts
+  if(any(class(tps) =="sf")) {
+
+    #print("sf")
+    tps <- tps %>%
+      st_drop_geometry
+  }
+
+  mapunit1_unique <- tps %>%
+    dplyr::select(mapunit1) %>%
+    dplyr::distinct()
+  mapunit2_unique <- tps %>%
+    dplyr::select(mapunit2) %>%
+    distinct() %>%
+    dplyr::rename(mapunit1 = mapunit2)
+  mapunit_unique <- rbind(mapunit1_unique, mapunit2_unique) %>%
+    distinct() %>%
+    pull()
+
+  return(mapunit_unique)
+}

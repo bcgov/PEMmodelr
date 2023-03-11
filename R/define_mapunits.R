@@ -5,6 +5,7 @@
 #' @param attribute character to define the column name in mapkey that unis will be converted
 #' @import sf
 #' @importFrom dplyr select left_join rename
+#' @importFrom stringr str_trim
 #' @return sf attribute with updated mapunit 1 and mapunit 2 fields
 #' @export
 #'
@@ -14,9 +15,9 @@
 
 define_mapunits <- function(tps, mapkey, attribute) {
 
- # testing lines
+#  testing lines
  # tps = allpts[1:1000,1:10]
-#  mapkey = mapkey
+ #mapkey = mapkey
 #  attribute = "BaseMapUnit"
 
 
@@ -25,17 +26,33 @@ define_mapunits <- function(tps, mapkey, attribute) {
     dplyr::select(FieldCall, attribute)
   names(mapkeysub) = c("FieldCall", "MapUnit")
 
-  outdata <- tpts %>%
+  # format spaces
+  tps <- tps %>%
+    dplyr::mutate(mapunit1 = stringr::str_trim(mapunit1)) %>%
+    dplyr::mutate(mapunit2 = stringr::str_trim(mapunit2))
+
+  # format the mapcalls
+  outdata <- tps %>%
     dplyr::left_join( mapkeysub, by = c("mapunit1" = "FieldCall")) %>%
     dplyr::select(-mapunit1) %>%
     dplyr::rename(mapunit1 = MapUnit) %>%
-    dplyr::left_join( mapkeysub, by = c("mapunit2" = "FieldCall")) %>%
+    dplyr::left_join(mapkeysub, by = c("mapunit2" = "FieldCall")) %>%
     dplyr::select(-mapunit2) %>%
     dplyr::rename(mapunit2 = MapUnit)
 
   outdata <- outdata %>%
-    mutate(mapunit1 = ifelse(!is.na(mapunit2) & is.na(mapunit1), mapunit2, mapunit1)) %>%
-    mutate(mapunit2 = ifelse((mapunit1 == mapunit2), NA, mapunit2))
+    dplyr::mutate(mapunit1 = ifelse(!is.na(mapunit2) & is.na(mapunit1), mapunit2, mapunit1)) %>%
+    dplyr::mutate(mapunit2 = ifelse((mapunit1 == mapunit2), NA, mapunit2))
+
+  outdata <- outdata %>%
+    dplyr::filter(!is.na(mapunit1))%>%
+    dplyr::filter(mapunit1 != "")%>%
+    dplyr::mutate(mapunit1 = case_when(
+      mapunit1 == "" ~ NA,
+      .default = as.character(mapunit1)))%>%
+    dplyr::mutate(mapunit2 = case_when(
+    mapunit2 == "" ~ NA,
+    .default = as.character(mapunit2)))
 
   return(outdata)
 
