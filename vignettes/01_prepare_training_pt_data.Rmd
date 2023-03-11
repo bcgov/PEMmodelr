@@ -1,0 +1,69 @@
+---
+title: "01_Prepare_training_pt_data"
+author: "G. Perkins"
+date: "2023-03-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Prepare training point data 
+
+After following the sets in PEMsamplr we are ready to model the BEC variants. Two major decision points are required. 
+1) What spatial scale to model at?
+2) What level of BEC classification is required 
+
+In this example we will use the default 5m spatial resolution, and map to a site series level. We will continue using the Canyon Creek example used in PEMprepr and PEMsamplr. 
+
+
+
+
+```{r cars}
+
+#remotes::install_github("bcgov/PEMprepr", build_vignettes = TRUE)
+devtools::load_all("D:\\PEM_DATA\\PEMprepr")
+devtools::load_all("D:\\PEM_DATA\\PEMsamplr")
+devtools::load_all("D:\\PEM_DATA\\PEMmodelr")
+
+library(PEMprepr)
+library(PEMsamplr)
+library(PEMmodelr)
+
+```
+
+
+1) Generate folder structure/naming folders
+
+```{r}
+# set up the folder structure and define folder names in object fid
+
+fid <- setup_folders("CanyonCreek")
+```
+
+We will already have a set of clean and atributed data from PEM and ensure you have a MapUnitLegend.csv set up. 
+
+
+```{r}
+# read in Map key 
+mapkey <- read.csv(file.path(fid$AOI_dir[2], "DateCreek_MapUnitLegend.csv"))
+
+# #read in the fuzzy index
+fMat <- read.csv(file.path(AOI_dir, "_MapUnitLegend", 
+                                  "fuzzy_matrix.csv")) %>%
+  dplyr::select(c(target, Pred, fVal)) %>% distinct ()
+fMat <- data.table(fMat)
+
+# read in training points
+allpts <- st_read(file.path(fid$training_data_1030[2], "allpts.gpkg"))
+st_crs(allpts) = 3005
+
+# read in bec data 
+bec <- sf::st_read(file.path(fid$shape_dir_1010[1], "bec.gpkg")) %>% sf::st_cast(., "MULTIPOLYGON") 
+
+```
+
+# select the 
+
+
