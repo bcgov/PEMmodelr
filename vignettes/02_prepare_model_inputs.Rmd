@@ -41,7 +41,7 @@ rast_list <- rast_list[tolower(gsub(".sdat", "", basename(rast_list))) %in% tolo
 # read in the raster template used for modelling (i.e 5m resolution)
 rstack <- terra::rast(rast_list)
 
-subsmpl <- terra::spatSample(rstack , size = 100000, method = "regular", xy = FALSE, na.rm = TRUE) # sample raster
+subsmpl <- terra::spatSample(rstack, size = 100000, method = "regular", xy = FALSE, na.rm = TRUE) # sample raster
 
 reduced_vars <- reduce_features(subsmpl, cutoff = 0.90, corr_plot = FALSE)
 
@@ -58,15 +58,27 @@ saveRDS(reduced_vars, file.path(fid$model_inputs0310[2], "reduced_covariate_list
 mpts <- read.csv(file.path(fid$model_inputs0310[2], "training_pts.csv")) %>%
   dplyr::select(-X)
 
-# remove correlated covars
+# tune the data 
+#mpts <- mpts[1:10000,]
+
+
+# filter the original points (not neighbours) and remove correlated covars
 trDat <- mpts %>%
   dplyr::filter(position %in% "Orig") %>%
-  dplyr::select(target, slice, any_of(reduced_vars)) %>%
+  select_pure_training() %>%
+  dplyr::select(mapunit1, slice, any_of(reduced_vars)) %>%
   dplyr::mutate(slice = as.factor(slice)) %>%  
   drop_na() %>% 
-  mutate(target = factor(target)) %>%  
+  mutate(mapunit1 = factor(mapunit1)) %>%  
   droplevels()
-      
+   
+   
+#trDat <- trDat %>%
+#  filter(slice %in% c(1,2))%>%
+#  droplevels()
+
+
+
 trees_split <- initial_split(trDat, strata = slice)
 trees_train <- training(trees_split)
 trees_test <- testing(trees_split)
@@ -101,7 +113,7 @@ tune_res <- tune_grid(
  )
  
  tune_res
- best_tune <- show_best(tune_res, metric = "roc_auc")
+ shwbest_tune <- show_best(tune_res, metric = "roc_auc")
  best_tune2 <- show_best(tune_res, metric = "accuracy")
  
  tune_res %>%
