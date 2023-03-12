@@ -1,0 +1,94 @@
+---
+title: "02_prepare_model_params"
+author: "G. Perkins"
+date: "2023-03-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r  libraries}
+#remotes::install_github("bcgov/PEMprepr", build_vignettes = TRUE)
+devtools::load_all("D:\\PEM_DATA\\PEMprepr")
+devtools::load_all("D:\\PEM_DATA\\PEMsamplr")
+devtools::load_all("D:\\PEM_DATA\\PEMmodelr")
+
+library(PEMprepr)
+library(PEMsamplr)
+library(PEMmodelr)
+library(dplyr)
+library(data.table)
+
+```
+
+# Recursive Feature selection 
+
+
+```{r}
+
+# import list 
+res_size = "5m"
+mcols <- readRDS(file.path(fid$model_inputs0310[2], "covariate_list.rds"))
+
+rast_list <- list.files(file.path(fid$cov_dir_1020[2],res_size), pattern = ".sdat$", full.names = T, recursive = T)
+   
+rast_list <- rast_list[tolower(gsub(".sdat", "", basename(rast_list))) %in% tolower(mcols)]
+
+# read in the raster template used for modelling (i.e 5m resolution)
+rstack <- terra::rast(rast_list)
+
+subsmpl <- terra::spatSample(rstack , size = 100000, method = "regular", xy = FALSE, na.rm = TRUE) # sample raster
+
+corr_vars <- reduce_features(subsmpl, cutoff = 0.90, corr_plot = FALSE)
+
+
+
+# import training points
+mpts <- read.csv(file.path(fid$model_inputs0310[2], "training_pts.csv")) %>%
+  dplyr::select(-X)
+
+# remove correlated covars
+mpts <- mpts %>%
+  dplyr::select(slice, x, y, fnf, target, target2, tid, bgc_cat, position, any_of(corr_vars))
+
+
+
+
+
+centre_pnt <- mpts %>% 
+  dplyr::filter(position %in% "Orig") %>%
+  dplyr::select(-slice, -x, -y, -fnf, -target2, -tid, -bgc_cat, -position)
+ 
+
+# import list 
+
+
+
+
+zones <- c(as.character(subzones))
+
+bgc_pts_subzone <- lapply(zones, function (i){
+      
+  pts_subzone <- mpts %>%
+        dplyr::filter(stringr::str_detect(tid, as.character(paste0(i, "_")))) %>% ###changed this from target to allow inclusion of non-forest by bgc
+        #         filter(str_detect(bgc_cat, as.character(paste0(i)))) %>%
+        droplevels()
+      
+      if(nrow(pts_subzone) == 0){ pts_subzone = NULL} else {ppts_subzone = pts_subzone }
+      pts_subzone
+  })
+  
+# generate a name for list objects removing NULL values
+names <- unlist(lapply(bgc_pts_subzone, is.null))
+zone_names <- zones[-(which(ll <- names)) ] 
+  
+# remove null or missing subzones data sets 
+bgc_pts_subzone =  bgc_pts_subzone[-which(sapply(bgc_pts_subzone, is.null))]
+names(bgc_pts_subzone) <- zone_names
+
+
+```
+

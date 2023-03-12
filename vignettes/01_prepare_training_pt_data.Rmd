@@ -40,6 +40,7 @@ library(data.table)
 # set up the folder structure and define folder names in object fid
 
 fid <- setup_folders("CanyonCreek")
+
 ```
 
 We will already have a set of clean and atributed data from PEM and ensure you have a MapUnitLegend.csv set up. 
@@ -56,7 +57,7 @@ fMat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix_basic.csv")) %>%
 fMat <- data.table(fMat)
 
 # read in training points
-allpts <- st_read(file.path(fid$training_data_1030[2], "allpts.gpkg"))
+allpts <- st_read(file.path(fid$trainpts_att[2], "allpts.gpkg"))
 st_crs(allpts) = 3005
 
 # read in bec data 
@@ -71,14 +72,75 @@ bec <- sf::st_read(file.path(fid$shape_dir_1010[2], "bec.gpkg")) %>% sf::st_cast
 
 ```{r}
 # define units to map
-mpts <- define_mapunits(allpts , mapkey, "BaseMapUnit")
-
+mpts <- define_mapunits(allpts, mapkey, "BaseMapUnit")
 
 # get list of unique values
 maplist <- list_mapunits(mpts)
 
 
-```
+# match to the key and filter for forest and non_forest points
+subzones <- unique(bec$MAP_LABEL)
+subzones <- tolower(gsub("\\s+","",subzones))
 
+# Intersect BEC zones and format the dataset
+
+tpts  <- mpts %>%
+  cbind(st_coordinates(.)) %>%
+  mutate(fnf = ifelse(grepl(paste0(subzones, collapse = "|"), tolower(mapunit1)), "forest", "non_forest")) %>%
+  st_join(st_transform(bec[, "MAP_LABEL"], st_crs(.)), join = st_nearest_feature) %>%
+  st_drop_geometry() %>% 
+  dplyr::select(fnf, everything()) %>%
+  dplyr::rename(bgc_cat = MAP_LABEL) %>% 
+  rename_all(.funs = tolower)
+
+
+tpts <- tpts %>% 
+    mutate(target = as.factor(mapunit1),
+                          target2 = as.factor(mapunit2)) 
+
+# Decide what to do with Forest/ non ofrwst split? 
+
+
+# select the covariates for the model 
+
+mcols <- c("dem_convergence", "dem_convexity", #"dem_cnetwork" ,
+           "dem_dah" ,"dem_dem_preproc",  #"dem_flow_accum_ft" , 
+           #"dem_flow_accum_p" ,"dem_flow_accum_td", 
+           "dem_flowpathlentd", #"dem_max_fp_l" , 
+           "dem_max_fp_l2" ,"dem_ls_factor" ,"dem_mbi",               
+           #"dem_mrn" , "dem_mrn_area", "dem_mrn_mheight",
+           "dem_mscale_tpi", "dem_mrrtf" ,"dem_mrvbf" , 
+           "dem_mrrtf2" ,"dem_mrvbf2" , "dem_open_neg" ,
+           "dem_open_pos" , #"dem_hdist"  ,"dem_vdist" ,                
+           #"dem_hdistnob" ,"dem_vdistnob", 
+           "dem_protection" , "dem_slope_height",
+           "dem_ms_position" , #"dem_norm_height" , 
+           "dem_stand_height" ,#"dem_valleydepth" , 
+           "dem_rid_level",   "dem_tcatchment" ,
+           "dem_val_depth", "dem_scatchment" ,"dem_sinkroute"  ,
+           "dem_sinksfilled", "dem_aspect", "dem_gencurve"  , 
+           "dem_slope", "dem_totcurve"  ,"dem_down_curv" , "dem_local_curv"  ,
+           "dem_local_downslope_curv", "dem_local_upslope_curv" ,
+           "dem_upslope_curv", "dem_slength" , "dem_diffinso",
+           "dem_direinso", "dem_steepest_slope", #"dem_swi_area" ,
+           #"dem_swi_area_mod",  "dem_tci_low", 
+           "dem_swi_slope" , "dem_swi_twi",
+           "dem_flowlength1" ,#"dem_tca1",  
+           "dem_texture" ,"dem_tpi", "dem_tri"  ,
+           "dem_twi", "dem_vert_dis", "dem_vrm", "dem_wind_exp_index" #, "dem"    
+)
+
+saveRDS(mcols, file.path(fid$model_inputs0310[2], "covariate_list.rds"))
+
+# drop the columns not needed in model
+
+mpts <- tpts %>%
+    dplyr::select(-c(id,order, point_type,transect_id, observer, transition, data_type,mapunit1, mapunit2, stuc_stage, stuc_mod, date_ymd, time_hms, edatope, comments, photos)) %>%
+    dplyr::select(fnf, x, y, bgc_cat, target, target2, position,  tid, slice, any_of(mcols))
+
+write.csv(mpts, file.path(fid$model_inputs0310[2], "training_pts.csv"))
+
+
+```
 
 
