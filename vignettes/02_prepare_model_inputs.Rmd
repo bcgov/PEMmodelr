@@ -108,6 +108,15 @@ write.csv(best_tune, file.path(fid$model_inputs0310[2], "best_tuning.csv"))
  
 ```
 
+
+
+
+
+
+
+
+
+
 # set up the training points by BGCs
 
 ```{r}
