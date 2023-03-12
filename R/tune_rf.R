@@ -5,8 +5,8 @@
 #'
 #'
 #' @param tpt is the transect training points in table format
-#' @param reduced_var is a  data.frame listing names of reduced features
-#'
+#' @param output type of output wanted, can be "full" or "best"
+#' @param accuracy type (optional) only applies when output =="best". Options are "accuracy" or "roc")
 #' @keywords randomforest, hyperparameter tuning
 #' @import parsnip
 #' @import magrittr
@@ -17,9 +17,10 @@
 #'
 
 
-tune_rf <- function(tpt) {
+tune_rf <- function(tpt, output = "full", accuracy_type = NULL) {
 
-  tran_dat = trDat
+  # possible add another function to decide output (accuracy, full outputs)
+  #tran_dat = trDat
 
   trees_split <- rsample::initial_split(tran_dat, strata = slice, prop = 1 / 10)
   trees_train <- rsample::training(trees_split)
@@ -43,17 +44,33 @@ tune_rf <- function(tpt) {
   trees_folds <- rsample::vfold_cv(trees_train, v = 10, repeats = 1, strata = slice)
 
   doParallel::registerDoParallel()
-#tic()
+
   tune_res <- tune::tune_grid(
     tune_wf,
     resamples = trees_folds,
     grid = 10
   )
-#toc()
 
- # best_tune <- select_best(tune_res, metric = "accuracy")
+  if(output == "full") {
+    print("returning full tuning outputs")
+    out = tune_res
 
-  #fwrite(best_tune, file.path(out_dir, "best_tuning.csv"))
+  } else if(output == "best"){
 
-  return(best_tune)
+    print("returning best option only")
+
+    if(accuracy_type == "accuracy"){
+
+      out <- select_best(tune_res, metric = "accuracy")
+
+    }
+    if(accuracy_type == "roc_auc"){
+
+      out <- select_best(tune_res, metric = "roc_auc")
+
+    }
+
+  }
+
+  return(out)
 }

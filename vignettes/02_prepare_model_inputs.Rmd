@@ -61,7 +61,6 @@ mpts <- read.csv(file.path(fid$model_inputs0310[2], "training_pts.csv")) %>%
 # tune the data 
 #mpts <- mpts[1:10000,]
 
-
 # filter the original points (not neighbours) and remove correlated covars
 trDat <- mpts %>%
   dplyr::filter(position %in% "Orig") %>%
@@ -72,66 +71,38 @@ trDat <- mpts %>%
   mutate(mapunit1 = factor(mapunit1)) %>%  
   droplevels()
    
-   
-#trDat <- trDat %>%
-#  filter(slice %in% c(1,2))%>%
-#  droplevels()
+# temp subsample to get it working 
+mu <- c("ICHmc1_01", "ICHmc1_01a" ,  "ICHmc1_01b" ,  "ICHmc1_03",   "ICHmc1_04" ,"ICHmc1_05"  ,  "ICHmc1_06" , "ICHmc1a_01b" ,  "ICHmc2_01a", "ICHmc2_01b",   "ICHmc2_02" ,   "ICHmc2_03" ,   "ICHmc2_04" ,   "ICHmc2_05") 
 
+trDat1 <- trDat %>%
+ filter(mapunit1 %in% mu)%>%
+  droplevels()
 
+trDat = trDat1
 
-trees_split <- initial_split(trDat, strata = slice)
-trees_train <- training(trees_split)
-trees_test <- testing(trees_split)
+# tune the parameters
+tune_res <- tune_rf(trDat1, output = 'full')
 
-tune_spec <- rand_forest(
-  mtry = tune(),
-  trees = 200,
-  min_n = tune()
-) %>%
-  set_mode("classification") %>%
-  set_engine("ranger")
-
-best_recipe <-  recipe(target ~ ., data = trees_train) %>%
-           update_role(slice, new_role = "id variable")# %>%
-           #step_downsample(target, under_ratio = downsample_ratio) %>%
-           #step_smote(target, over_ratio = smote_ratio , neighbors = 10, skip = TRUE)
-
-tune_wf <- workflow() %>%
-   add_recipe(best_recipe) %>%
-   add_model(tune_spec)
+# show best 
+best_tune_roc_auc <- show_best(tune_res, metric = "roc_auc")
+best_tune_accuracy <- show_best(tune_res, metric = "accuracy")
+  
+ # best_tune <- select_best(tune_res, metric = "accuracy")
+  tune_res %>%
+    collect_metrics() %>%
+    filter(.metric == "roc_auc") %>%
+    dplyr::select(mean, min_n, mtry) %>%
+    pivot_longer(min_n:mtry,
+      values_to = "value",
+      names_to = "parameter"
+    ) %>%
+    ggplot(aes(value, mean, color = parameter)) +
+    geom_point(show.legend = FALSE) +
+    facet_wrap(~parameter, scales = "free_x") +
+    labs(x = NULL, y = "AUC")
+  
+best_tune <- select_best(tune_res, metric = "accuracy")
  
-set.seed(234)
-trees_folds <- vfold_cv(trees_train)
-
-doParallel::registerDoParallel()
-
-set.seed(345)
-tune_res <- tune_grid(
-   tune_wf,
-   resamples = trees_folds,
-   grid = 10
- )
- 
- tune_res
- shwbest_tune <- show_best(tune_res, metric = "roc_auc")
- best_tune2 <- show_best(tune_res, metric = "accuracy")
- 
- tune_res %>%
-   collect_metrics() %>%
-   filter(.metric == "roc_auc") %>%
-   dplyr::select(mean, min_n, mtry) %>%
-   pivot_longer(min_n:mtry,
-     values_to = "value",
-     names_to = "parameter"
-   ) %>%
-   ggplot(aes(value, mean, color = parameter)) +
-   geom_point(show.legend = FALSE) +
-   facet_wrap(~parameter, scales = "free_x") +
-   labs(x = NULL, y = "AUC")
- 
- best_tune <- select_best(tune_res, metric = "accuracy")
- 
-
 write.csv(best_tune, file.path(fid$model_inputs0310[2], "best_tuning.csv"))
  
  

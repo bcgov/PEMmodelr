@@ -4,12 +4,14 @@
 \alias{tune_rf}
 \title{Find optimal tuning for rF model}
 \usage{
-tune_rf(tpt)
+tune_rf(tpt, output = "full", accuracy_type = NULL)
 }
 \arguments{
 \item{tpt}{is the transect training points in table format}
 
-\item{reduced_var}{is a  data.frame listing names of reduced features}
+\item{output}{type of output wanted, can be "full" or "best"}
+
+\item{accuracy}{type (optional) only applies when output =="best". Options are "accuracy" or "roc")}
 }
 \description{
 Runs a tuneRF function on all training data to determine optimal mtry and min_n.
