@@ -1,21 +1,24 @@
 #' Unique map units from primary and alternate calls
 #'
-#' Simple function that returns a list of unique map units from mapunit1 and mapunit2 fields
+#' Function that returns subset of training points with only pure calls (primary calls)
 #'
-#'
-#' @param tran_dat is the transect training points
-#'
+#' @param tps is the transect training points
+#' @importFrom dplyr filter mutate distinct
+#' @import magrittr
 #' @keywords mapunit
 #' @export
-#' ##
+#' @examples
+#'
+#'select_pure_training(tps)
 #
-#
-# select_pure_training <- function(tran_dat) {
-#   pure_tran_dat <- tran_dat %>%
-#     filter(!mapunit1 == "") %>%
-#     filter(!is.na(mapunit1)) %>%
-#     mutate(mapunit2 = replace_na(mapunit2, "")) %>%
-#     distinct()
-#
-#   return(pure_tran_dat)
-# }
+
+select_pure_training <- function(tps) {
+
+  pure_tran_dat <- tps %>%
+    dplyr::filter(!mapunit1 == "") %>%
+    dplyr::filter(!is.na(mapunit1)) %>%
+    dplyr::mutate(mapunit2 = replace_na(mapunit2, "")) %>%
+    dplyr::distinct()
+
+  return(pure_tran_dat)
+}

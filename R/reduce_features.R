@@ -17,7 +17,9 @@
 #
 reduce_features <- function(subsmpl, cutoff = 0.90, corr_plot = FALSE) {
 
-  subsmpl <- subsmpl %>% dplyr::select(-any_of(c("x", "y")))
+  #subsmpl <- subsmpl %>% dplyr::select(-any_of(c("x", "y")))
+  subsmpl <- data.frame(subsmpl)
+  subsmpl <-  subsmpl[complete.cases(subsmpl),]
 
   # Generate Correlations
   if(isTRUE(corr_plot)){
