@@ -2,10 +2,13 @@
 
 export(define_mapunits)
 export(list_mapunits)
+export(reduce_features)
 import(dplyr)
 import(magrittr)
 import(sf)
+importFrom(caret,findCorrelation)
 importFrom(dplyr,left_join)
 importFrom(dplyr,rename)
 importFrom(dplyr,select)
+importFrom(stats,cor)
 importFrom(stringr,str_trim)
