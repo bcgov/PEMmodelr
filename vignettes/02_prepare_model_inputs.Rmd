@@ -21,6 +21,7 @@ library(PEMsamplr)
 library(PEMmodelr)
 library(dplyr)
 library(data.table)
+library(tidymodels)
 
 ```
 
@@ -31,7 +32,7 @@ library(data.table)
 
 # import list 
 res_size = "5m"
-mcols <- readRDS(file.path(fid$model_inputs0310[2], "covariate_list.rds"))
+mcols <- readRDS(file.path(fid$model_inputs0310[2], "full_covariate_list.rds"))
 
 rast_list <- list.files(file.path(fid$cov_dir_1020[2],res_size), pattern = ".sdat$", full.names = T, recursive = T)
    
@@ -42,31 +43,91 @@ rstack <- terra::rast(rast_list)
 
 subsmpl <- terra::spatSample(rstack , size = 100000, method = "regular", xy = FALSE, na.rm = TRUE) # sample raster
 
-corr_vars <- reduce_features(subsmpl, cutoff = 0.90, corr_plot = FALSE)
+reduced_vars <- reduce_features(subsmpl, cutoff = 0.90, corr_plot = FALSE)
+
+saveRDS(reduced_vars, file.path(fid$model_inputs0310[2], "reduced_covariate_list.rds"))
+
+```
 
 
+### Optional tuning optimization step (takes a long time to run)
+
+```{r hyperparameter tuning}
 
 # import training points
 mpts <- read.csv(file.path(fid$model_inputs0310[2], "training_pts.csv")) %>%
   dplyr::select(-X)
 
 # remove correlated covars
-mpts <- mpts %>%
-  dplyr::select(slice, x, y, fnf, target, target2, tid, bgc_cat, position, any_of(corr_vars))
-
-
-
-
-
-centre_pnt <- mpts %>% 
+trDat <- mpts %>%
   dplyr::filter(position %in% "Orig") %>%
-  dplyr::select(-slice, -x, -y, -fnf, -target2, -tid, -bgc_cat, -position)
+  dplyr::select(target, slice, any_of(reduced_vars)) %>%
+  dplyr::mutate(slice = as.factor(slice)) %>%  
+  drop_na() %>% 
+  mutate(target = factor(target)) %>%  
+  droplevels()
+      
+trees_split <- initial_split(trDat, strata = slice)
+trees_train <- training(trees_split)
+trees_test <- testing(trees_split)
+
+tune_spec <- rand_forest(
+  mtry = tune(),
+  trees = 200,
+  min_n = tune()
+) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
+
+best_recipe <-  recipe(target ~ ., data = trees_train) %>%
+           update_role(slice, new_role = "id variable")# %>%
+           #step_downsample(target, under_ratio = downsample_ratio) %>%
+           #step_smote(target, over_ratio = smote_ratio , neighbors = 10, skip = TRUE)
+
+tune_wf <- workflow() %>%
+   add_recipe(best_recipe) %>%
+   add_model(tune_spec)
+ 
+set.seed(234)
+trees_folds <- vfold_cv(trees_train)
+
+doParallel::registerDoParallel()
+
+set.seed(345)
+tune_res <- tune_grid(
+   tune_wf,
+   resamples = trees_folds,
+   grid = 10
+ )
+ 
+ tune_res
+ best_tune <- show_best(tune_res, metric = "roc_auc")
+ best_tune2 <- show_best(tune_res, metric = "accuracy")
+ 
+ tune_res %>%
+   collect_metrics() %>%
+   filter(.metric == "roc_auc") %>%
+   dplyr::select(mean, min_n, mtry) %>%
+   pivot_longer(min_n:mtry,
+     values_to = "value",
+     names_to = "parameter"
+   ) %>%
+   ggplot(aes(value, mean, color = parameter)) +
+   geom_point(show.legend = FALSE) +
+   facet_wrap(~parameter, scales = "free_x") +
+   labs(x = NULL, y = "AUC")
+ 
+ best_tune <- select_best(tune_res, metric = "accuracy")
  
 
-# import list 
+write.csv(best_tune, file.path(fid$model_inputs0310[2], "best_tuning.csv"))
+ 
+ 
+```
 
+# set up the training points by BGCs
 
-
+```{r}
 
 zones <- c(as.character(subzones))
 

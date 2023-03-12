@@ -130,7 +130,7 @@ mcols <- c("dem_convergence", "dem_convexity", #"dem_cnetwork" ,
            "dem_twi", "dem_vert_dis", "dem_vrm", "dem_wind_exp_index" #, "dem"    
 )
 
-saveRDS(mcols, file.path(fid$model_inputs0310[2], "covariate_list.rds"))
+saveRDS(mcols, file.path(fid$model_inputs0310[2], "full_covariate_list.rds"))
 
 # drop the columns not needed in model
 
