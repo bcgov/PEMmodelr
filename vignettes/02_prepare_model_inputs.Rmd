@@ -154,6 +154,11 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
     
 
   
+    # up to here
+    
+    
+    
+    
     
     ###update off-BGC units with equivalent map unit for mapped BGC
   ss_crosswalk <- fread("./_MapUnitLegend/Site_Series_Equivalents.csv") %>% filter(bgc.choose.map == bgc.choose)
