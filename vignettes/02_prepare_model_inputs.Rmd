@@ -55,14 +55,14 @@ saveRDS(reduced_vars, file.path(fid$model_inputs0310[2], "reduced_covariate_list
 ```{r hyperparameter tuning}
 
 # import training points
-mpts <- read.csv(file.path(fid$model_inputs0310[2], "training_pts.csv")) %>%
+cleandat <- read.csv(file.path(fid$model_inputs0310[2], "training_pts.csv")) %>%
   dplyr::select(-X)
 
 # tune the data 
 #mpts <- mpts[1:10000,]
 
 # filter the original points (not neighbours) and remove correlated covars
-trDat <- mpts %>%
+trDat <- cleandat %>%
   dplyr::filter(position %in% "Orig") %>%
   select_pure_training() %>%
   dplyr::select(mapunit1, slice, any_of(reduced_vars)) %>%
@@ -71,14 +71,14 @@ trDat <- mpts %>%
   mutate(mapunit1 = factor(mapunit1)) %>%  
   droplevels()
    
-# temp subsample to get it working 
-mu <- c("ICHmc1_01", "ICHmc1_01a" ,  "ICHmc1_01b" ,  "ICHmc1_03",   "ICHmc1_04" ,"ICHmc1_05"  ,  "ICHmc1_06" , "ICHmc1a_01b" ,  "ICHmc2_01a", "ICHmc2_01b",   "ICHmc2_02" ,   "ICHmc2_03" ,   "ICHmc2_04" ,   "ICHmc2_05") 
-
-trDat1 <- trDat %>%
- filter(mapunit1 %in% mu)%>%
-  droplevels()
-
-trDat = trDat1
+# # temp subsample to get it working 
+# mu <- c("ICHmc1_01", "ICHmc1_01a" ,  "ICHmc1_01b" ,  "ICHmc1_03",   "ICHmc1_04" ,"ICHmc1_05"  ,  "ICHmc1_06" , "ICHmc1a_01b" ,  "ICHmc2_01a", "ICHmc2_01b",   "ICHmc2_02" ,   "ICHmc2_03" ,   "ICHmc2_04" ,   "ICHmc2_05") 
+# 
+# trDat1 <- trDat %>%
+#  filter(mapunit1 %in% mu)%>%
+#   droplevels()
+# 
+# trDat = trDat1
 
 # tune the parameters
 tune_res <- tune_rf(trDat1, output = 'full')
@@ -108,39 +108,77 @@ write.csv(best_tune, file.path(fid$model_inputs0310[2], "best_tuning.csv"))
  
 ```
 
-
-
-
-
-
-
-
-
-
-# set up the training points by BGCs
+# set up the training points by BGCs and model folders
 
 ```{r}
+# set up the training points by BGC
 
-zones <- c(as.character(subzones))
+zones <- c(as.character(unique(cleandat$bgc_cat)))
 
 bgc_pts_subzone <- lapply(zones, function (i){
-      
-  pts_subzone <- mpts %>%
-        dplyr::filter(stringr::str_detect(tid, as.character(paste0(i, "_")))) %>% ###changed this from target to allow inclusion of non-forest by bgc
-        #         filter(str_detect(bgc_cat, as.character(paste0(i)))) %>%
+ # i =  zones[1]  
+  pts_subzone <- cleandat %>%
+        dplyr::filter(stringr::str_detect(tid, as.character(paste0(tolower(i), "_")))) %>% 
         droplevels()
       
-      if(nrow(pts_subzone) == 0){ pts_subzone = NULL} else {ppts_subzone = pts_subzone }
+    if(nrow(pts_subzone) == 0){ pts_subzone = NULL} else {ppts_subzone = pts_subzone }
       pts_subzone
   })
   
-# generate a name for list objects removing NULL values
-names <- unlist(lapply(bgc_pts_subzone, is.null))
-zone_names <- zones[-(which(ll <- names)) ] 
+# format names
+names(bgc_pts_subzone) <- zones
+
+
+# create a folder for each of the Bec variants to model
+
+model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
+   
+  # xx <- names(bgc_pts_subzone[1])
+    alldat = bgc_pts_subzone[[xx]]
+    out_name = names(bgc_pts_subzone[xx])
   
-# remove null or missing subzones data sets 
-bgc_pts_subzone =  bgc_pts_subzone[-which(sapply(bgc_pts_subzone, is.null))]
-names(bgc_pts_subzone) <- zone_names
+    # set up output folders
+    outDir = file.path(fid$model_draft[2], xx)
+    if(!dir.exists(file.path(outDir))){dir.create(file.path(outDir))} 
+
+    # check the mapunit count
+    tdat <- filter_min_mapunits(alldat, min_no = 20)
+    
+    trDat <- tdat %>% mutate(slice = factor(slice))
+  
+    #trDat_all <- inmdata_all[complete.cases(inmdata_all[ , 7:length(inmdata_all)]),]
+   
+    model_report(trDat, outDir)
+    
+    table(trDat[, "mapunit1"])
+    ggplot(trDat, aes(mapunit1)) +
+      geom_bar() + 
+      theme(axis.text.x = element_text(angle = 90))
+    
+    
+     
+  trDat_slices <- trDat %>% 
+    group_by(slice) %>%
+    dplyr::summarise(n.transect = length(unique(transect_id)),
+                     n.sites = length(unique(tid))) %>%
+    pivot_longer(cols = c("n.transect", "n.sites"), names_to = "type", values_to = "number")
+  
+  ggplot(trDat_slices, aes(slice, number, fill = type))+
+    geom_bar(stat = "identity", position = "dodge")+
+    theme(axis.text.x = element_text(angle = 90))+
+    theme_pem() + 
+    scale_fill_discrete_sequential(palette = "Light Grays")
+
+  
+    
+    ###update off-BGC units with equivalent map unit for mapped BGC
+  ss_crosswalk <- fread("./_MapUnitLegend/Site_Series_Equivalents.csv") %>% filter(bgc.choose.map == bgc.choose)
+  setDT(trDat)[ss_crosswalk, "target" := target_new, on = c(target = "target_old")]
+
+
+    
+     
+})
 
 
 ```

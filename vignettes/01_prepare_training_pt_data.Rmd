@@ -50,11 +50,11 @@ We will already have a set of clean and attributed data from PEM and ensure you 
 # read in Map key 
 mapkey <- read.csv(file.path(fid$AOI_dir[2], "DateCreek_MapUnitLegend.csv"))
 
-# #read in the fuzzy index
-fMat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix_basic.csv")) %>%
-  dplyr::select(c(target, Pred, fVal)) %>% dplyr::distinct ()
-
-fMat <- data.table(fMat)
+# # #read in the fuzzy index
+# fMat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix_basic.csv")) %>%
+#   dplyr::select(c(target, Pred, fVal)) %>% dplyr::distinct ()
+# 
+# fMat <- data.table(fMat)
 
 # read in training points
 allpts <- st_read(file.path(fid$trainpts_att[2], "allpts.gpkg"))
@@ -100,20 +100,14 @@ tpts <- tpts %>%
 # QUESTION : Decide what to do with Forest/ non ofrwst split? 
 
 
-# check the number of points per mapunit and filter out mapunits with less than 20 actual origin points
 
-mu_check <- tpts %>%
-  dplyr::filter(position %in% "Orig")
+# check minimum number of mapunits and filter out 
+  mu_check <- tpts %>%
+    dplyr::filter(position %in% "Orig")
 
-MU_count <- mu_check %>% dplyr::count(mapunit1) %>% filter(n > 20) 
-  
-# remove training points with less than 20 actual points 
-tpts <- tpts %>% 
-  dplyr::filter(mapunit1 %in% MU_count$mapunit1)  %>%
-  droplevels() 
- 
-
-
+  # check the mapunit count
+  tpts <- filter_min_mapunits(mu_check, min_no = 10)
+    
 
 # select the covariates for the model 
 
@@ -152,8 +146,8 @@ saveRDS(mcols, file.path(fid$model_inputs0310[2], "full_covariate_list.rds"))
 # drop the columns not needed in model
 
 mpts <- tpts %>%
-    dplyr::select(-c(id,order, point_type,transect_id, observer, transition, data_type, stuc_stage, stuc_mod, date_ymd, time_hms, edatope, comments, photos)) %>%
-    dplyr::select(fnf, x, y, bgc_cat, mapunit1, mapunit2, position,  tid, slice, any_of(mcols))
+    dplyr::select(-c(id,order, point_type, observer, transition, data_type, stuc_stage, stuc_mod, date_ymd, time_hms, edatope, comments, photos)) %>%
+    dplyr::select(fnf, x, y, bgc_cat, mapunit1, mapunit2, position, transect_id, tid, slice, any_of(mcols))
 
 write.csv(mpts, file.path(fid$model_inputs0310[2], "training_pts.csv"))
 
