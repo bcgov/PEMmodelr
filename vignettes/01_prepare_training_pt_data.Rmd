@@ -96,21 +96,14 @@ tpts <- tpts %>%
     mutate(mapunit1 = as.factor(mapunit1),
            mapunit2 = as.factor(mapunit2)) 
 
-
 # QUESTION : Decide what to do with Forest/ non ofrwst split? 
 
 
 
 # check minimum number of mapunits and filter out 
-  mu_check <- tpts %>%
-    dplyr::filter(position %in% "Orig")
-
-  # check the mapunit count
-  tpts <- filter_min_mapunits(mu_check, min_no = 10)
+  ftpts <- filter_min_mapunits(tpts, min_no = 10)
     
-
 # select the covariates for the model 
-
 mcols <- c("dem_convergence", "dem_convexity", #"dem_cnetwork" ,
            "dem_dah" ,"dem_dem_preproc",  #"dem_flow_accum_ft" , 
            #"dem_flow_accum_p" ,"dem_flow_accum_td", 
@@ -143,7 +136,7 @@ mcols <- c("dem_convergence", "dem_convexity", #"dem_cnetwork" ,
 
 saveRDS(mcols, file.path(fid$model_inputs0310[2], "full_covariate_list.rds"))
 
-# drop the columns not needed in model
+# drop the columns not needed in model ## NOTE TRIS ONLY INCLUDES THE ORIGIN OPTOPM
 
 mpts <- tpts %>%
     dplyr::select(-c(id,order, point_type, observer, transition, data_type, stuc_stage, stuc_mod, date_ymd, time_hms, edatope, comments, photos)) %>%

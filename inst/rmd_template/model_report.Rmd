@@ -36,7 +36,7 @@ out_dir <- params$out_dir
 
 ```{r summary, echo = FALSE, include = TRUE}
 
-table(tpts[, mapunit1])
+table(tpts[, "mapunit1"])
 
 # calculate summary of raw training data set
 trDat_sum <- tpts %>%
@@ -46,8 +46,8 @@ trDat_sum <- tpts %>%
 
 ggplot(tpts, aes(mapunit1)) +
   geom_bar() + 
-  theme(axis.text.x = element_text(angle = 90))+
   theme_pem()+
+  theme(axis.text.x = element_text(angle = 90))+
   scale_fill_discrete_sequential(palette = "Light Grays")
 
 trDat_slices <- trDat %>%
@@ -58,7 +58,6 @@ trDat_slices <- trDat %>%
 
 ggplot(trDat_slices, aes(slice, number, fill = type)) +
   geom_bar(stat = "identity", position = "dodge") + 
-  theme(axis.text.x = element_text(angle = 90))+
   theme_pem()+
   scale_fill_discrete_sequential(palette = "Light Grays")
 
