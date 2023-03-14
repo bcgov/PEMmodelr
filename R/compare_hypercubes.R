@@ -22,10 +22,62 @@
 #' @export
 #' ##
 
+library(data.table)
+library(terra)
+library(sf)
 
-compare_hypercubes <- function(target_hypercube = file.path(cov_dir, res_dir), sample_hypercube, varlist = "all", size = 100000,
-                                     method = "regular", type = "subsample", bins = 10,  minbin = 10, graph_compare = FALSE, return_spatial = FALSE,
-                               xy = TRUE, na.rm = TRUE) {
+map <- rast(c("LocalData/rid_level.tif","LocalData/swi_slope.tif",
+              "LocalData/tpi.tif","LocalData/twi.tif","LocalData/valley_depth_2.tif"))
+
+thesample <- spatSample(map, size = 10000, method = "regular")
+thesample <- na.omit(thesample)
+#rnge <- range(map$rid_level)
+
+###testingt
+target_hypercube <- map
+sample_hypercube <- thesample
+
+
+compare_hypercubes <- function(target_hypercube, sample_hypercube, varlist = "all",
+                                     method = "regular", type = "subsample", bins = 10,  minbin = 1,
+                               graph_compare = FALSE, return_spatial = FALSE,
+                               xy = TRUE, na.rm = TRUE) { #size = 100000,
+    sampDat <- as.data.table(sample_hypercube)
+    sampDat <- na.omit(sampDat)
+    nsamp <- nrow(sampDat)
+
+    ## split and calculate full raster stack
+    target_classified <- terra::sapp(target_hypercube, \(x,...) as.numeric(classify(x,10)))
+
+    concat_fn <- function(...){
+      return(as.integer(paste0(...)))
+    }
+    target_id <- lapp(target_classified,concat_fn)
+
+    target_freq <- as.data.table(freq(target_id)) ##target_freq has counts of all bins
+    setorder(target_freq,-count)
+
+    ranges <- minmax(target_hypercube)
+
+  ##split into same bins as full data set
+  #i = 1
+  ##should update this for efficiency
+  sample_binned <- copy(sample_hypercube)
+  for(i in 1:ncol(sample_hypercube)){
+    sample_binned[[i]] <- (cut(sample_hypercube[[i]],
+                                 breaks = seq(ranges[1,i],ranges[2,i],length.out = 11),
+                                 labels = F, include.lowest = T) - 1) ##start at 0
+  }
+  sample_binned <- as.data.table(sample_binned)
+  sample_binned[,Code := as.numeric(do.call(paste0,.SD)),.SDcols = names(sample_binned)]
+
+  sample_binned <- na.omit(sample_binned)
+  sample_freq <- sample_binned[,.(freq = .N), by = .(Code)]##count
+
+  target_freq[sample_freq, sample_num := i.freq,  on = c(value = "Code")]
+
+  return(target_freq)
+
 
 ### returns
   ## for each variable the min and max values for variable and the max value for each bin in the AOI
