@@ -23,6 +23,8 @@ library(dplyr)
 library(data.table)
 library(tidymodels)
 
+fid <- setup_folders("CanyonCreek")
+
 ```
 
 # Recursive Feature selection 
