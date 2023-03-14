@@ -46,7 +46,7 @@ subsmpl <- terra::spatSample(rstack, size = 100000, method = "regular", xy = FAL
 
 reduced_vars <- reduce_features(subsmpl, cutoff = 0.90, corr_plot = FALSE)
 
-saveRDS(reduced_vars, file.path(fid$model_inputs0310[2], "reduced_covariate_list.rds"))
+write.csv(reduced_vars, file.path(fid$model_inputs0310[2], "reduced_covariate_list.csv"))
 
 ```
 
@@ -131,6 +131,13 @@ names(bgc_pts_subzone) <- zones
 
 
 
+# set up the standard inputs 
+
+fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix_basic.csv" ))
+
+
+
+
 # create a folder for each of the Bec variants to model
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
@@ -147,29 +154,62 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
     # check the mapunit count
     tdat <- filter_min_mapunits(alldat, min_no = 20)
     
-    trDat <- tdat %>% mutate(slice = factor(slice))
-  
-    tpts <- trDat
+    tdat <- tdat %>% mutate(slice = factor(slice))
+    tdat <- tdat %>% 
+      dplyr::select(fnf, x, y, bgc_cat, mapunit1, mapunit2,                               position, transect_id, tid, slice, everything())
+   
+    tdat_all <- tdat[complete.cases(tdat[ , 11:length(tdat)]),]
+    tdat_centre <- tdat_all %>% dplyr::filter(position %in% "Orig")
+ 
     #trDat_all <- inmdata_all[complete.cases(inmdata_all[ , 7:length(inmdata_all)]),]
    
-    model_report(trDat, outDir)
+    model_report(tdat_all, outDir)
     
 
-  
     # up to here
     
-    
-    
-    
-    
-    ###update off-BGC units with equivalent map unit for mapped BGC
-  ss_crosswalk <- fread("./_MapUnitLegend/Site_Series_Equivalents.csv") %>% filter(bgc.choose.map == bgc.choose)
-  setDT(trDat)[ss_crosswalk, "target" := target_new, on = c(target = "target_old")]
-
-
-    
-     
 })
+
+
+```
+
+# run model 
+
+```{r}
+in_dir <- fid$model_inputs0310[2]
+
+
+balance = "noextra_balancing"
+
+model_out = file.path(paste(outDir, balance, sep = "/"))
+if(!dir.exists(file.path(model_out ))){dir.create(file.path(model_out ))}
+
+
+# set up tuning (applies to all models)
+best_tune <- fread(file.path (in_dir, "best_tuning.csv"))
+mtry <- best_tune$mtry
+min_n <- best_tune$min_n
+
+# select reduced variables
+reduced.var <- read.csv(file.path (in_dir,  "reduced_covariate_list.csv"))
+reduced.var <- reduced.var$x
+
+
+
+
+## QUESTION 
+
+
+#### NEED TO DETERMINE IF THE TUNING ETC IS BUILT PER BEC 
+
+
+# reduce the number of variables 
+  trDat <- tdat_all  %>% 
+    dplyr::select(position, slice, transect_id, tid, bgc_cat, mapunit1, mapunit2, any_of(reduced.var)) %>%
+    rowid_to_column(., var = "ID")%>%
+    mutate(slice = as.factor(slice)) 
+
+
 
 
 ```
