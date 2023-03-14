@@ -24,21 +24,25 @@
 # fuzzmatrx = fread("./temp_data/fuzzy_matrix_basic_updated.csv")
 #   theta = 0.5
 
+
+#pred_data = pred_all
+#fuzzmatrx = fuzz_matrix[,1:3]
+
 report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
 
   ##1.  Selects max value between primary and secondary calls
 
   preds = c("id","mapunit1", "mapunit2", ".pred_class")
   pred_data <- pred_data %>% dplyr::select(any_of(preds))
-  data1 <- dplyr::left_join(pred_data, fuzzmatrx, by = c("mapunit1" = "target", ".pred_class" = "compare")) %>%
+  data1 <- dplyr::left_join(pred_data, fuzzmatrx, by = c("mapunit1" = "target", ".pred_class" = "Pred")) %>%
     replace(is.na(.), 0) %>%
     dplyr::mutate_if(is.character, as.factor) %>%
-    dplyr::mutate(p_fuzzval = fuzzval) %>%
-    dplyr::select(-fuzzval)
-  data2 <- dplyr::left_join(data1, fuzzmatrx, by = c("mapunit2" = "target", ".pred_class" = "compare")) %>%
+    dplyr::rename("p_fuzzval" = fVal)
+
+  data2 <- dplyr::left_join(data1, fuzzmatrx, by = c("mapunit2" = "target", ".pred_class" = "Pred")) %>%
     dplyr::mutate_if(is.character, as.factor) %>%
     replace(is.na(.), 0) %>%
-    dplyr::mutate(alt_fuzzval = fuzzval)
+    dplyr::rename("alt_fuzzval" = fVal)
 
   ##2. selects the neighbour with max value
   data <- data2 %>%
@@ -48,7 +52,7 @@ report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::top_n(1, abs(pa_fuzzval)) %>%
     dplyr::distinct(id, .keep_all = TRUE) %>%
     data.frame() %>%
-    dplyr::select(-fuzzval, -alt_fuzzval)
+    dplyr::select(-p_fuzzval, -alt_fuzzval)
 
   data <- data %>%
     dplyr::mutate_if(is.factor, as.character) %>%
