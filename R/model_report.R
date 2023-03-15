@@ -16,8 +16,8 @@
 
 model_report <- function(tpts, out_dir){
   # # # testing : GP
-  #tpts = pts
-  #out_dir = cleandat
+  #tpts =  tdat_all
+  #out_dir = outDir
 
   ## create destination folder
   ifelse(!dir.exists(file.path(out_dir)),

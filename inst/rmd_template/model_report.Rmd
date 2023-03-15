@@ -50,7 +50,7 @@ ggplot(tpts, aes(mapunit1)) +
   theme(axis.text.x = element_text(angle = 90))+
   scale_fill_discrete_sequential(palette = "Light Grays")
 
-trDat_slices <- trDat %>%
+trDat_slices <- tpts %>%
   group_by (slice) %>%
   dplyr::summarise(n.transect = length(unique(transect_id)),
                    n.sites = length(unique(tid))) %>% 

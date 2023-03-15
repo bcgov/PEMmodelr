@@ -10,7 +10,7 @@
 #' @import themis
 #' @import ranger
 #' @import ParBayesianOptimization
-#'
+#' @export
 #' @author Kiri Daust
 #' @examples
 #'
@@ -25,14 +25,6 @@
 #' diag(covmat) <- 0
 #' trDat <- trDat[,c(rep(TRUE,5),!apply(covmat, 2, function(x) any(abs(x) > 0.9, na.rm = TRUE))),with = FALSE]
 #'
-#' @export
-
-# reduce the number of variables
-rawDat = trDat
-rawDat <- as.data.table(rawDat)
-
-
-
 #rawDat <- st_read("./PEM_dev/s1_clean_neighbours_allatts.gpkg")
 #rawDat <- as.data.table(st_drop_geometry(rawDat))
 #rawDat <- rawDat[grep("ESSFmc_",mapunit1),]
@@ -45,16 +37,34 @@ rawDat <- as.data.table(rawDat)
 #fMat <- fread("./fuzzy_matrix_basic_updated.csv")
 #train_data <- clnDat
 #train_data <- fread("TestPredict.csv")
+#
+#opt_res <- optimise_balance(train_data = clnDat, fuzz_matrix = fMat, num_slice = 2)
+#  getBestPars(opt_res)
 
-opt_res <- optimise_balance(train_data = clnDat, fuzz_matrix = fMat, num_slice = 2)
-getBestPars(opt_res)
+# # test example
+# train_data <- trDat %>% filter(mapunit1 %in% c("ICHmc1_01a", "ICHmc1_03","ICHmc1_07" ))
+# train_data <- trDat %>% filter(slice %in% c(1,2))
+#
+# train_data = as.data.table(train_data)
+#
+#
+# opt_res <- optimise_balance(train_data =  train_data,
+#                             fuzz_matrix = fMat,
+#                             num_slice = 2,
+#                             n_iters = 4,
+#                             use.neighbours = TRUE,
+#                             acc_mets = c("spat_paf_theta.5","aspat_paf_theta.5","spat_paf_theta0"),
+#                             mtry = 14,
+#                             min_n = 7)
 
-optimise_balance <- function(train_data, fuzz_matrix, num_slice = 2, n_iters = 4, use.neighbours = TRUE,
+#  getBestPars(opt_res)
+
+optimise_balance <- function(train_data, fuzz_matrix, num_slice = 2, n_iters = 4, mtry = 14,min_n = 7, use.neighbours = TRUE,
                              acc_mets = c("spat_paf_theta.5","aspat_paf_theta.5","spat_paf_theta0")){
- # # data lines
+ # # # data lines
  #  train_data = as.data.table(trDat)
  #  fuzz_matrix = fmat
- #  num_slice = 2
+ #  num_slice = 5
  #  n_iters = 4
  #  use.neighbours = TRUE
  #  acc_mets = c("spat_paf_theta.5","aspat_paf_theta.5","spat_paf_theta0")
@@ -62,26 +72,29 @@ optimise_balance <- function(train_data, fuzz_matrix, num_slice = 2, n_iters = 4
  #  min_n = min_n
  #  # end data lines
 
-
   ref_dat <- copy(train_data)
   ref_dat[,mapunit1 := as.factor(mapunit1)]
   print("Training raw data models...")
+
   ref_acc <- foreach(k = 1:num_slice, .combine = rbind) %do% {
     ref_train <- ref_dat[slice != k & position == "Orig",]
-    ref_train[,c("ID","tid","mapunit2", "position","slice") := NULL]
+    ref_train[,c("id","tid","mapunit2", "position","slice") := NULL]
     low_units <- ref_train[,.(NumUnit = .N), by = .(mapunit1)][NumUnit < 10,]
     ref_train <- ref_train[!mapunit1 %in% low_units$mapunit1,]
 
     if (use.neighbours) {
       ref_test <- ref_dat[slice == k & !mapunit1 %in% low_units$mapunit1,]
-    }else{
+     # ref_test <- ref_dat[slice == k,] #& !mapunit1 %in% low_units$mapunit1,]
+       }else{
       ref_test <- ref_dat[slice == k & !mapunit1 %in% low_units$mapunit1 & position == "Orig",]
-    }
+     # ref_test <- ref_dat[slice == k & position == "Orig",]
+       }
+
     ref_mod <- ranger::ranger(mapunit1 ~ ., data = ref_train, mtry = mtry,
-                      num.trees = 151, min.node.size = 6, importance = "permutation")
+                      num.trees = 151, min.node.size = min_n, importance = "permutation")
 
     preds <- predict(ref_mod, ref_test)
-    pred_all <- cbind(ref_test[,.(id = ID, mapunit1, mapunit2, slice)],
+    pred_all <- cbind(ref_test[,.(id, mapunit1, mapunit2, slice)],
                                     .pred_class = preds$predictions)
     pred_all$mapunit1 <- as.factor(pred_all$mapunit1)
     pred_all$.pred_class <- factor(pred_all$.pred_class,
@@ -89,10 +102,13 @@ optimise_balance <- function(train_data, fuzz_matrix, num_slice = 2, n_iters = 4
     # all_units <- unique(c(pred_all$mapunit1,pred_all$.pred_class))
     # pred_all[,`:=`(mapunit1 = factor(mapunit1,levels = all_units),
     #                .pred_class = factor(.pred_class, levels = all_units))]
-    acc <- report_model_accuracy(pred_all,fuzzmatrx = fuzz_matrix)
+    print(paste0("generating accuracy metrics for slice:",k))
+
+    acc <- report_model_accuracy(pred_all, fuzzmatrx = fuzz_matrix)
     acc <- acc[,acc_mets]
     acc
   }
+
   ref_acc_all <- colMeans(ref_acc)
   ref_acc_fn <- mean(ref_acc_all)
 

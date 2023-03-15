@@ -13,8 +13,6 @@
 #'
 #' @keywords accuracy, fuzzy sets, theta
 #' @export
-#' ##
-
 # library(yardstick)
 # library(janitor)
 # library(dplyr)
@@ -31,6 +29,10 @@
 report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
 
   ##1.  Selects max value between primary and secondary calls
+ # pred_data = pred_all
+#  fuzzmatrx = fuzz_matrix
+#  theta = 0.5
+  # end testing line
 
   preds = c("id","mapunit1", "mapunit2", ".pred_class")
   pred_data <- pred_data %>% dplyr::select(any_of(preds))
@@ -45,16 +47,16 @@ report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::rename("alt_fuzzval" = fVal)
 
   ##2. selects the neighbour with max value
-  data <- data2 %>%
+  pdata <- data2 %>%
     dplyr::rowwise() %>%
     dplyr::mutate(pa_fuzzval = max(p_fuzzval, alt_fuzzval)) %>%
     dplyr::group_by(id) %>%
     dplyr::top_n(1, abs(pa_fuzzval)) %>%
     dplyr::distinct(id, .keep_all = TRUE) %>%
-    data.frame() %>%
-    dplyr::select(-p_fuzzval, -alt_fuzzval)
+    data.frame() #%>%
+   # dplyr::select(-p_fuzzval, -alt_fuzzval)
 
-  data <- data %>%
+  pdata <- pdata %>%
     dplyr::mutate_if(is.factor, as.character) %>%
     dplyr::mutate(
       p_Val = ifelse(mapunit1 == .pred_class, 1, 0),
@@ -69,14 +71,16 @@ report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::add_count(.pred_class, name = "pred.tot") # %>% group_by(mapunit) %>%
   # dplyr::mutate(pred.tot_pa = sum(pa_Val)) %>% ungroup()
 
-  targ.lev <- as.data.frame(levels(data$mapunit1)) %>%
+  targ.lev <- as.data.frame(levels(pdata$mapunit1)) %>%
     dplyr::rename(levels = 1) %>%
     droplevels()
-  pred.lev <- as.data.frame(levels(data$.pred_class)) %>%
+
+  pred.lev <- as.data.frame(levels(pdata$.pred_class)) %>%
     dplyr::rename(levels = 1) %>%
     droplevels()
+
   add.pred.lev <- dplyr::anti_join(pred.lev, targ.lev, by = "levels")
-  data <- data %>%
+  pdata <- pdata %>%
     dplyr::mutate(
       mapunit.new = ifelse(.pred_class %in% add.pred.lev, as.character(.pred_class), as.character(mapunit1)),
       trans.tot.new = ifelse(.pred_class %in% add.pred.lev, 0, trans.tot)
@@ -86,25 +90,25 @@ report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
   #   mutate(pred.new = ifelse(mapunit.new %in% add.pred.lev, as.character(mapunit), as.character(.pred_class))) %>%
   #     mutate(mapunit = mapunit.new, .pred_class = pred.new)
   ### harmonize factor levels
-  targ.lev <- levels(data$mapunit1)
-  pred.lev <- levels(data$.pred_class)
+  targ.lev <- levels(pdata$mapunit1)
+  pred.lev <- levels(pdata$.pred_class)
   levs <- c(targ.lev, pred.lev) %>% unique()
-  data$mapunit <- factor(data$mapunit1, levels = levs)
-  data$.pred_class <- factor(data$.pred_class, levels = levs)
+  pdata$mapunit <- factor(pdata$mapunit1, levels = levs)
+  pdata$.pred_class <- factor(pdata$.pred_class, levels = levs)
 
-  data <- data %>%
+  pdata <- pdata %>%
     tidyr::drop_na(mapunit) %>%
     dplyr::mutate(no.classes = length(levs)) %>%
     dplyr::select(-pred.tot, -trans.tot.new)
 
   ### 1)machine learning stats
-  data <- harmonize_factors(data)
-  acc <- data %>%
+  pdata <- harmonize_factors(pdata)
+  acc <- pdata %>%
     yardstick::accuracy(mapunit1, .pred_class, na_rm = TRUE) %>%
     dplyr::select(.estimate) %>%
     as.numeric() %>%
     round(3)
-  mcc <- data %>%
+  mcc <- pdata %>%
     yardstick::mcc(mapunit1, .pred_class, na_rm = TRUE) %>%
     dplyr::select(.estimate) %>%
     as.numeric() %>%
@@ -114,13 +118,13 @@ report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
   # prec <- data %>% precision(mapunit, .pred_class, na.rm = TRUE)
   # recall <- data %>% recall(mapunit, .pred_class, na.rm = TRUE)
   # fmeas <- data %>% f_meas(mapunit, .pred_class, na.rm = TRUE)
-  kap <- data %>%
+  kap <- pdata %>%
     yardstick::kap(mapunit1, .pred_class, na.rm = TRUE) %>%
     dplyr::select(.estimate) %>%
     as.numeric() %>%
     round(3)
   ### 2) spatial stats
-  spatial_acc <- data %>%
+  spatial_acc <- pdata %>%
     dplyr::mutate(trans.sum = n(), acc = acc, kap = kap) %>%
     ### here the problem is differing number of mapunit vs .pred_class
     dplyr::group_by(mapunit.new) %>%
@@ -166,13 +170,13 @@ report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::rename(mapunit = mapunit.new)
 
   # 3) calculate aspatial metrics (overall and mapunit % correct)
-  aspatial_mapunit <- data %>%
+  aspatial_mapunit <- pdata %>%
     dplyr::select(mapunit) %>%
     dplyr::add_count(mapunit, name = "trans.tot") %>%
     dplyr::distinct() %>%
     dplyr::mutate(trans.sum = sum(trans.tot))
   #
-  aspatial_pred <- data %>%
+  aspatial_pred <- pdata %>%
     dplyr::select(.pred_class) %>%
     dplyr::add_count(.pred_class, name = "pred.tot") %>%
     dplyr::distinct()
@@ -213,7 +217,7 @@ report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::ungroup() %>%
     dplyr::distinct()
   #### --- primary plus alternate
-  data_pa <- data %>%
+  data_pa <- pdata %>%
     dplyr::mutate_if(is.factor, as.character) %>%
     dplyr::mutate(mapunit = ifelse(mapunit2 == .pred_class, as.character(mapunit2), as.character(mapunit))) %>%
     dplyr::mutate_if(is.character, factor)
@@ -269,7 +273,6 @@ report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
 
 
 
-
   accuracy_stats <- dplyr::left_join(spatial_acc, aspatial_acc2, by = "mapunit")
   ### calculate paf aspatial statistics
   aspat_fpa_df <- accuracy_stats %>%
@@ -301,8 +304,10 @@ report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
 
   accuracy_stats <- dplyr::left_join(accuracy_stats, aspat_fpa_df, by = "mapunit") %>%
     dplyr::select(mapunit, trans.sum, trans.tot, pred.tot, no.classes, everything())
-  accuracy_stats
-}
+
+  return(accuracy_stats)
+
+  }
 
 # function to calculate the weighted metrics
 
