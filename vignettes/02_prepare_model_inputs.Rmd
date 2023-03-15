@@ -46,7 +46,7 @@ subsmpl <- terra::spatSample(rstack, size = 100000, method = "regular", xy = FAL
 
 reduced_vars <- reduce_features(subsmpl, cutoff = 0.90, corr_plot = FALSE)
 
-write.csv(reduced_vars, file.path(fid$model_inputs0310[2], "reduced_covariate_list.csv"))
+write.csv(reduced_vars, file.path(fid$model_inputs0310[2], "reduced_covariate_list.csv"),row.names = FALSE)
 
 ```
 
@@ -82,7 +82,7 @@ trDat <- cleandat %>%
 # trDat = trDat1
 
 # tune the parameters
-tune_res <- tune_rf(trDat1, output = 'full')
+tune_res <- tune_rf(trDat, output = 'full')
 
 # show best 
 best_tune_roc_auc <- show_best(tune_res, metric = "roc_auc")
@@ -133,7 +133,8 @@ names(bgc_pts_subzone) <- zones
 
 # set up the standard inputs 
 
-fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix_basic.csv" ))
+fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix_basic.csv" ))%>%
+  dplyr::select(target, Pred, fVal)
 
 
 
@@ -150,15 +151,12 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
     # set up output folders
     outDir = file.path(fid$model_draft[2], xx)
     if(!dir.exists(file.path(outDir))){dir.create(file.path(outDir))} 
-
-    # check the mapunit count
-    tdat <- filter_min_mapunits(alldat, min_no = 20)
     
-    tdat <- tdat %>% mutate(slice = factor(slice))
+    tdat <- alldat %>% mutate(slice = factor(slice))
     tdat <- tdat %>% 
-      dplyr::select(fnf, x, y, bgc_cat, mapunit1, mapunit2,                               position, transect_id, tid, slice, everything())
+      dplyr::select(id, fnf, x, y, bgc_cat, mapunit1, mapunit2,                               position, transect_id, tid, slice, everything())
    
-    tdat_all <- tdat[complete.cases(tdat[ , 11:length(tdat)]),]
+    tdat_all <- tdat[complete.cases(tdat[ , 12:length(tdat)]),]
     tdat_centre <- tdat_all %>% dplyr::filter(position %in% "Orig")
  
     #trDat_all <- inmdata_all[complete.cases(inmdata_all[ , 7:length(inmdata_all)]),]
@@ -176,6 +174,7 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
 # run model 
 
 ```{r}
+
 in_dir <- fid$model_inputs0310[2]
 
 
@@ -191,23 +190,17 @@ mtry <- best_tune$mtry
 min_n <- best_tune$min_n
 
 # select reduced variables
-reduced.var <- read.csv(file.path (in_dir,  "reduced_covariate_list.csv"))
-reduced.var <- reduced.var$x
+reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% pull()
 
 
 
 
-## QUESTION 
-
-
-#### NEED TO DETERMINE IF THE TUNING ETC IS BUILT PER BEC 
 
 
 # reduce the number of variables 
-  trDat <- tdat_all  %>% 
-    dplyr::select(position, slice, transect_id, tid, bgc_cat, mapunit1, mapunit2, any_of(reduced.var)) %>%
-    rowid_to_column(., var = "ID")%>%
-    mutate(slice = as.factor(slice)) 
+trDat <- tdat_all  %>% 
+    dplyr::select(id, position, slice, transect_id, tid, bgc_cat, mapunit1,
+                  mapunit2, any_of(reduced.var))
 
 
 
