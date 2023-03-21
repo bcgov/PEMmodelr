@@ -112,6 +112,10 @@ write.csv(best_tune, file.path(fid$model_inputs0310[2], "best_tuning.csv"))
 # set up the training points by BGCs and model folders
 
 ```{r}
+
+cleandat <- read.csv(file.path(fid$model_inputs0310[2], "training_pts.csv")) %>%
+  dplyr::select(-X)
+
 # set up the training points by BGC
 
 zones <- c(as.character(unique(cleandat$bgc_cat)))
@@ -133,13 +137,57 @@ names(bgc_pts_subzone) <- zones
 
 # set up the standard inputs 
 
+in_dir <- fid$model_inputs0310[2]
+
 fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix_basic.csv" ))%>%
   dplyr::select(target, Pred, fVal)
+
+# set up tuning (applies to all models)
+best_tune <- fread(file.path (in_dir, "best_tuning.csv"))
+mtry <- best_tune$mtry
+min_n <- best_tune$min_n
+
+# select reduced variables
+reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% pull()
 
 
 
 
 # create a folder for each of the Bec variants to model
+
+model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
+   
+    xx <- names(bgc_pts_subzone[1])
+  
+    alldat = bgc_pts_subzone[[xx]]
+    out_name = names(bgc_pts_subzone[xx])
+  
+    # set up output folders
+    outDir = file.path(fid$model_draft[2], xx)
+    if(!dir.exists(file.path(outDir))){dir.create(file.path(outDir))} 
+    
+    tdat <- alldat %>% mutate(slice = factor(slice))
+    tdat <- tdat %>% 
+      dplyr::select(id, fnf, x, y, bgc_cat, mapunit1, mapunit2,                               position, transect_id, tid, slice, everything())
+   
+    tdat_all <- tdat[complete.cases(tdat[ ,12:length(tdat)]),]
+    tdat_centre <- tdat_all %>% dplyr::filter(position %in% "Orig")
+ 
+    #trDat_all <- inmdata_all[complete.cases(inmdata_all[ , 7:length(inmdata_all)]),]
+   
+    model_report(tdat_all, outDir)
+    
+   # up to here
+    
+})
+
+
+```
+
+# run model 
+
+```{r}
+
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
    
@@ -163,45 +211,76 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
    
     model_report(tdat_all, outDir)
     
-
-    # up to here
+   # up to here
     
 })
 
 
-```
+# option to just run model with no balanca 
 
-# run model 
+# option to balance. 
 
-```{r}
+
+
 
 in_dir <- fid$model_inputs0310[2]
 
-
-balance = "noextra_balancing"
-
-model_out = file.path(paste(outDir, balance, sep = "/"))
+model_out <- outDir
 if(!dir.exists(file.path(model_out ))){dir.create(file.path(model_out ))}
-
-
-# set up tuning (applies to all models)
-best_tune <- fread(file.path (in_dir, "best_tuning.csv"))
-mtry <- best_tune$mtry
-min_n <- best_tune$min_n
-
-# select reduced variables
-reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% pull()
-
-
-
-
 
 
 # reduce the number of variables 
 trDat <- tdat_all  %>% 
     dplyr::select(id, position, slice, transect_id, tid, bgc_cat, mapunit1,
-                  mapunit2, any_of(reduced.var))
+                  mapunit2, any_of(reduced_vars))
 
+# # # data lines
+  train_data <- trDat %>%
+    filter(slice != 1)#%>%
+    #dplyr::select(-bgc_cat,-transect_id)
+
+  train_data = as.data.table(trDat)
+  train_data <-  train_data[grep("ICHmc2_",mapunit1),]
+  train_data <- droplevels(train_data)
+
+  fuzz_matrix = fmat
+  num_slice = 4
+   n_iters = 4
+   use.neighbours = TRUE
+   acc_mets = c("spat_paf_theta.5")
+   mtry = 4 #mtry
+   min_n = 7# min_n
+   # end data lines
+
+#metrics_to_run <- c("spat_paf_theta.5")
+
+opt_res <- optimise_balance(train_data, 
+                 fuzz_matrix, 
+                 num_slice = 4, 
+                 n_iters = 4, 
+                 mtry = 14,
+                 min_n = 7, 
+                 use.neighbours = TRUE,
+                 acc_mets =acc_mets)
+
+
+# get best balance: 
+getBestPars(opt_res, N = 5)
+
+
+function (opt_res , N = 2) 
+{
+    if (N > nrow(optObj$scoreSummary)) 
+        stop("N is greater than the iterations that have been run.")
+    if (N == 1) {
+        return(as.list(head(optObj$scoreSummary[order(-get("Score"))], 
+            1))[names(optObj$bounds)])
+    }
+    else {
+        head(optObj$scoreSummary[order(-get("Score"))], N)[, 
+            names(optObj$bounds), with = FALSE]
+    }
+}
 
 
 

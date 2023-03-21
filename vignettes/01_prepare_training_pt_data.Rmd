@@ -82,7 +82,6 @@ subzones <- unique(bec$MAP_LABEL)
 subzones <- tolower(gsub("\\s+","",subzones))
 
 # Intersect BEC zones and format the dataset
-
 tpts  <- mpts %>%
   cbind(st_coordinates(.)) %>%
   mutate(fnf = ifelse(grepl(paste0(subzones, collapse = "|"), tolower(mapunit1)), "forest", "non_forest")) %>%
