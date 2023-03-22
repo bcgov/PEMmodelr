@@ -1,5 +1,3 @@
-# run basic model (no downsample/smote)
-
 #' Run the basic model
 #'
 #' @param train_data data table containing the training data set
@@ -7,12 +5,11 @@
 #' @param mtry numeric. This is the output based on output of hyperparamter model tuning (default = ??)
 #' @param min_n numeric. This is the output based on output of hyperparamter model tuning (default = ??)
 #' @param use.neighbours. if you want to incluse all neighbours in the calculation
-#' @importFrom foreach "%do%"
-#' @importFrom magrittr"%>%"
-#' @importFrom ranger ranger
 #' @return datatable of accuracy metric
 #' @export
-#'
+#' @importFrom foreach "%do%"
+#' @importFrom magrittr "%>%"
+#' @importFrom ranger ranger
 #' @examples
 #' run_base_model(train_pts, fuzz_matrix, mtry = 14, min_n = 7, use.neighbours = TRUE)
 
