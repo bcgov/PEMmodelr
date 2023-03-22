@@ -143,7 +143,6 @@ mpts <- tpts %>%
 
 write.csv(mpts, file.path(fid$model_inputs0310[2], "training_pts.csv"))
 
-
 ```
 
 
