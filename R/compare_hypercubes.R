@@ -21,19 +21,24 @@
 #' @export
 #' ##
 
-# library(data.table)
-# library(terra)
-# library(sf)
-#
-# map <- rast(c("LocalData/rid_level.tif","LocalData/swi_slope.tif",
-#               "LocalData/tpi.tif","LocalData/twi.tif","LocalData/valley_depth_2.tif"))
-#
-# thesample <- spatSample(map, size = 10000, method = "regular")
-# thesample <- na.omit(thesample)
-# #rnge <- range(map$rid_level)
-#
-# ###testingt
-# result <- compare_hypercubes(target_hypercube = map, sample_hypercube = thesample)
+library(data.table)
+library(terra)
+library(sf)
+require(tidyverse)
+
+map <- rast(c("LocalData/rid_level.tif","LocalData/swi_slope.tif",
+              "LocalData/tpi.tif","LocalData/twi.tif","LocalData/valley_depth_2.tif"))
+
+#thesample <- spatSample(map, size = 10000, method = "regular")
+#thesample <- na.omit(thesample)
+thesample <- st_read(file.path("D:/GitHub/PEMmodelr/LocalData/s1_clean_neighbours_allatts.gpkg"))
+
+### KIRI build into the function to read the variables in map and use those to select from thesample
+thesample <- as.data.table(thesample) %>% filter(Position == "Orig") %>% dplyr::select(rid_level, swi_slope, tpi, twi, valley_depth_2)
+rnge <- range(map$rid_level)
+
+###testingt
+result <- compare_hypercubes(target_hypercube = map, sample_hypercube = thesample, bins = 9, minbin = 0)
 
 
 compare_hypercubes <- function(target_hypercube, sample_hypercube, varlist = "all",
@@ -43,7 +48,7 @@ compare_hypercubes <- function(target_hypercube, sample_hypercube, varlist = "al
 
   ## split and calculate full raster stack
   cat("Creating target hypercube...\n")
-  target_classified <- terra::sapp(target_hypercube, \(x,...) as.numeric(classify(x,10)))
+  target_classified <- terra::sapp(target_hypercube, \(x,...) as.numeric(classify(x,bins)))
 
   concat_fn <- function(...){
     return(as.integer(paste0(...)))
