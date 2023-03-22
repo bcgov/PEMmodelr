@@ -74,7 +74,7 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   write.csv(baseout, file.path(outDir, "acc_base_results.csv"))
   
   # generate model accuracy report
-  model_report(baseout, )
+  model_report(baseout, outDir)
   
 }
 ```
