@@ -17,13 +17,13 @@
 
 run_base_model <- function(train_data, fuzz_matrix, mtry = 14, min_n = 7, use.neighbours = TRUE){
 
-  # testing lines:
-  train_data = train_data
-  fuzz_matrix = fmat
-  mtry = 14
-  min_n = 7
-  use.neighbours = TRUE
-  # end testing lines
+  # # testing lines:
+  # train_data = train_data
+  # fuzz_matrix = fmat
+  # mtry = 14
+  # min_n = 7
+  # use.neighbours = TRUE
+  # # end testing lines
 
   ref_dat <- copy(train_data)
   ref_dat[,mapunit1 := as.factor(mapunit1)]
@@ -48,7 +48,6 @@ run_base_model <- function(train_data, fuzz_matrix, mtry = 14, min_n = 7, use.ne
 
     }
 
-    #ref_acc <- foreach(k = 1:num_slice, .combine = rbind) %do% {
     ref_acc <- foreach(k = levels(slices),.combine = rbind) %do% {
       #k = levels(slices)[1]
       ref_train <- ref_dat[slice != k & position == "Orig",]

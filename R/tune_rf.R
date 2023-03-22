@@ -9,7 +9,7 @@
 #' @param accuracy type (optional) only applies when output =="best". Options are "accuracy" or "roc")
 #' @keywords randomforest, hyperparameter tuning
 #' @import parsnip
-#' @import magrittr
+#' @importFrom magrittr "%>%"
 #' @importFrom dplyr select filter mutate
 #' @export
 #' @examples

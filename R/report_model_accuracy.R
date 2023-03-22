@@ -10,7 +10,7 @@
 #' for near misses
 #' @param theta the function always returns values for theta 0 and theta 1.
 #' The theta setting sets an intermediate theta setting to report efault set to 0.5
-#'
+#' @importFrom magrittr "%>%"
 #' @keywords accuracy, fuzzy sets, theta
 #' @export
 # library(yardstick)
