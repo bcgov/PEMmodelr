@@ -1,0 +1,129 @@
+---
+title: "03_run_models"
+author: "G. Perkins"
+date: "2023-03-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Run models
+
+```{r cars}
+# set up the standard inputs 
+
+in_dir <- fid$model_inputs0310[2]
+
+fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix_basic.csv" ))%>%
+  dplyr::select(target, Pred, fVal)
+
+# set up tuning (applies to all models)
+best_tune <- fread(file.path (in_dir, "best_tuning.csv"))
+mtry <- best_tune$mtry
+min_n <- best_tune$min_n
+
+# select reduced variables
+reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% pull()
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+
+
+model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
+   
+    xx <- names(bgc_pts_subzone[1])
+  
+    alldat = bgc_pts_subzone[[xx]]
+    
+    tdat <- alldat %>% mutate(slice = factor(slice))
+    tdat <- tdat %>% 
+      dplyr::select(id, fnf, x, y, bgc_cat, mapunit1, mapunit2,                               position, transect_id, tid, slice, any_of(reduced_vars))
+  
+    tdat <- tdat[complete.cases(tdat[ ,12:length(tdat)]),]
+  
+    # run basic model (no smote and no downsample)
+    
+  train_data <- tdat %>%
+    filter(slice != 1)
+
+  train_data = as.data.table(train_data)
+  train_data <-  train_data[grep("ICHmc2_",mapunit1),]
+  train_data <- droplevels(train_data)
+
+  fuzz_matrix = fmat
+  num_slice = 4
+   use.neighbours = TRUE
+
+
+baseout <- run_base_model( train_data,   fuzz_matrix = fmat, mtry = 14, min_n = 7, use.neighbours = TRUE)
+
+mout
+    
+    
+    # run 
+    
+    
+      
+
+  
+})
+
+
+# # # data lines
+  train_data <- trDat %>%
+    filter(slice != 1)#%>%
+    #dplyr::select(-bgc_cat,-transect_id)
+
+  train_data = as.data.table(trDat)
+  train_data <-  train_data[grep("ICHmc2_",mapunit1),]
+  train_data <- droplevels(train_data)
+
+  fuzz_matrix = fmat
+  num_slice = 4
+   n_iters = 4
+   use.neighbours = TRUE
+   acc_mets = c("spat_paf_theta.5")
+   mtry = 4 #mtry
+   min_n = 7# min_n
+   # end data lines
+
+#metrics_to_run <- c("spat_paf_theta.5")
+
+opt_res <- optimise_balance(train_data, 
+                 fuzz_matrix, 
+                 num_slice = 4, 
+                 n_iters = 4, 
+                 mtry = 14,
+                 min_n = 7, 
+                 use.neighbours = TRUE,
+                 acc_mets =acc_mets)
+
+
+# get best balance: 
+getBestPars(opt_res, N = 5)
+
+
+function (opt_res , N = 2) 
+{
+    if (N > nrow(optObj$scoreSummary)) 
+        stop("N is greater than the iterations that have been run.")
+    if (N == 1) {
+        return(as.list(head(optObj$scoreSummary[order(-get("Score"))], 
+            1))[names(optObj$bounds)])
+    }
+    else {
+        head(optObj$scoreSummary[order(-get("Score"))], N)[, 
+            names(optObj$bounds), with = FALSE]
+    }
+}
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
