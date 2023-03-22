@@ -27,11 +27,11 @@ fid <- setup_folders("CanyonCreek")
 
 ```
 
-# Recursive Feature selection 
+# Recursive Feature selection / Correlated variable reduction
 
 
 ```{r}
-# import list 
+
 res_size = "5m"
 mcols <- readRDS(file.path(fid$model_inputs0310[2], "full_covariate_list.rds"))
 
@@ -42,6 +42,7 @@ rast_list <- rast_list[tolower(gsub(".sdat", "", basename(rast_list))) %in% tolo
 # read in the raster template used for modelling (i.e 5m resolution)
 rstack <- terra::rast(rast_list)
 
+
 subsmpl <- terra::spatSample(rstack, size = 100000, method = "regular", xy = FALSE, na.rm = TRUE) # sample raster
 
 reduced_vars <- reduce_features(subsmpl, cutoff = 0.90, corr_plot = FALSE)
@@ -51,16 +52,14 @@ write.csv(reduced_vars, file.path(fid$model_inputs0310[2], "reduced_covariate_li
 ```
 
 
-### Optional tuning optimization step (takes a long time to run)
+### Optional:  tuning optimization step (takes a long time to run)
+
 
 ```{r hyperparameter tuning}
 
 # import training points
 cleandat <- read.csv(file.path(fid$model_inputs0310[2], "training_pts.csv")) %>%
   dplyr::select(-X)
-
-# tune the data 
-#mpts <- mpts[1:10000,]
 
 # filter the original points (not neighbours) and remove correlated covars
 trDat <- cleandat %>%
@@ -131,36 +130,18 @@ bgc_pts_subzone <- lapply(zones, function (i){ # i =  zones[1]
   
 # format names
 names(bgc_pts_subzone) <- zones
+```
 
+# Create a folder per BGC and run a check on the training points 
 
-
-
-# set up the standard inputs 
-
-in_dir <- fid$model_inputs0310[2]
-
-fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix_basic.csv" ))%>%
-  dplyr::select(target, Pred, fVal)
-
-# set up tuning (applies to all models)
-best_tune <- fread(file.path (in_dir, "best_tuning.csv"))
-mtry <- best_tune$mtry
-min_n <- best_tune$min_n
-
-# select reduced variables
-reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% pull()
-
-
-
-
-# create a folder for each of the Bec variants to model
+```{r}
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
    
     xx <- names(bgc_pts_subzone[1])
   
     alldat = bgc_pts_subzone[[xx]]
-    out_name = names(bgc_pts_subzone[xx])
+    #out_name = names(bgc_pts_subzone[xx])
   
     # set up output folders
     outDir = file.path(fid$model_draft[2], xx)
@@ -171,116 +152,26 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
       dplyr::select(id, fnf, x, y, bgc_cat, mapunit1, mapunit2,                               position, transect_id, tid, slice, everything())
    
     tdat_all <- tdat[complete.cases(tdat[ ,12:length(tdat)]),]
-    tdat_centre <- tdat_all %>% dplyr::filter(position %in% "Orig")
- 
-    #trDat_all <- inmdata_all[complete.cases(inmdata_all[ , 7:length(inmdata_all)]),]
+    #tdat_centre <- tdat_all %>% dplyr::filter(position %in% "Orig")
    
-    model_report(tdat_all, outDir)
-    
-   # up to here
-    
+    trainingpt_report(tpts = tdat_all, out_dir = outDir)
+  
 })
 
-
 ```
+
+
+
 
 # run model 
 
 ```{r}
 
 
-model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
-   
-    xx <- names(bgc_pts_subzone[1])
-  
-    alldat = bgc_pts_subzone[[xx]]
-    out_name = names(bgc_pts_subzone[xx])
-  
-    # set up output folders
-    outDir = file.path(fid$model_draft[2], xx)
-    if(!dir.exists(file.path(outDir))){dir.create(file.path(outDir))} 
-    
-    tdat <- alldat %>% mutate(slice = factor(slice))
-    tdat <- tdat %>% 
-      dplyr::select(id, fnf, x, y, bgc_cat, mapunit1, mapunit2,                               position, transect_id, tid, slice, everything())
-   
-    tdat_all <- tdat[complete.cases(tdat[ , 12:length(tdat)]),]
-    tdat_centre <- tdat_all %>% dplyr::filter(position %in% "Orig")
- 
-    #trDat_all <- inmdata_all[complete.cases(inmdata_all[ , 7:length(inmdata_all)]),]
-   
-    model_report(tdat_all, outDir)
-    
-   # up to here
-    
-})
-
 
 # option to just run model with no balanca 
 
 # option to balance. 
-
-
-
-
-in_dir <- fid$model_inputs0310[2]
-
-model_out <- outDir
-if(!dir.exists(file.path(model_out ))){dir.create(file.path(model_out ))}
-
-
-# reduce the number of variables 
-trDat <- tdat_all  %>% 
-    dplyr::select(id, position, slice, transect_id, tid, bgc_cat, mapunit1,
-                  mapunit2, any_of(reduced_vars))
-
-# # # data lines
-  train_data <- trDat %>%
-    filter(slice != 1)#%>%
-    #dplyr::select(-bgc_cat,-transect_id)
-
-  train_data = as.data.table(trDat)
-  train_data <-  train_data[grep("ICHmc2_",mapunit1),]
-  train_data <- droplevels(train_data)
-
-  fuzz_matrix = fmat
-  num_slice = 4
-   n_iters = 4
-   use.neighbours = TRUE
-   acc_mets = c("spat_paf_theta.5")
-   mtry = 4 #mtry
-   min_n = 7# min_n
-   # end data lines
-
-#metrics_to_run <- c("spat_paf_theta.5")
-
-opt_res <- optimise_balance(train_data, 
-                 fuzz_matrix, 
-                 num_slice = 4, 
-                 n_iters = 4, 
-                 mtry = 14,
-                 min_n = 7, 
-                 use.neighbours = TRUE,
-                 acc_mets =acc_mets)
-
-
-# get best balance: 
-getBestPars(opt_res, N = 5)
-
-
-function (opt_res , N = 2) 
-{
-    if (N > nrow(optObj$scoreSummary)) 
-        stop("N is greater than the iterations that have been run.")
-    if (N == 1) {
-        return(as.list(head(optObj$scoreSummary[order(-get("Score"))], 
-            1))[names(optObj$bounds)])
-    }
-    else {
-        head(optObj$scoreSummary[order(-get("Score"))], N)[, 
-            names(optObj$bounds), with = FALSE]
-    }
-}
 
 
 
