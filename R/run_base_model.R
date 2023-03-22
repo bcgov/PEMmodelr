@@ -7,8 +7,9 @@
 #' @param mtry numeric. This is the output based on output of hyperparamter model tuning (default = ??)
 #' @param min_n numeric. This is the output based on output of hyperparamter model tuning (default = ??)
 #' @param use.neighbours. if you want to incluse all neighbours in the calculation
-#' @importFrom foreach "%do"
-#'
+#' @importFrom foreach "%do%"
+#' @importFrom magrittr"%>%"
+#' @importFrom ranger ranger
 #' @return datatable of accuracy metric
 #' @export
 #'

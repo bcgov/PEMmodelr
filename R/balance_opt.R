@@ -5,10 +5,10 @@
 #' @param n_iters Integer - number of optimisation iterations
 #' @return List with optimal downsample and smote
 #' @import data.table
-#' @import foreach
+#' @importFrom foreach "%do%"
 #' @import recipes
 #' @import themis
-#' @import ranger
+#' @importFrom ranger ranger
 #' @import ParBayesianOptimization
 #' @export
 #' @author Kiri Daust

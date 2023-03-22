@@ -8,9 +8,11 @@
 #' @param output type of output wanted, can be "full" or "best"
 #' @param accuracy type (optional) only applies when output =="best". Options are "accuracy" or "roc")
 #' @keywords randomforest, hyperparameter tuning
-#' @import parsnip
+#' @importFrom parsnip rand_forest set_mode set_engine
 #' @importFrom magrittr "%>%"
 #' @importFrom dplyr select filter mutate
+#' @importFrom rsample vfold_cv initial_split training testing
+#' @import recipes
 #' @export
 #' @examples
 #' tune_rf(tpt, reduced_covs)

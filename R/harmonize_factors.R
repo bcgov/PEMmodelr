@@ -2,12 +2,10 @@
 #'
 #' @param target_vs_pred A data frame  with target and .pred_class columns
 #' @return data.frame with harmonized factor levels
-#'
-#' @import magrittr
+#' @importFrom magrittr "%>%"
 #' @examples
 #' harmonize_factors(pred_data)
 #' @export
-#
 
 harmonize_factors <- function(target_vs_pred){
   targ.lev <- levels(target_vs_pred$mapunit1)
