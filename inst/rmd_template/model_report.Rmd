@@ -2,7 +2,7 @@
 title: "Model_report"
 output: html_document
 params:
-  tpts: tpts
+  acc_output: acc_output
   out_dir: out_dir
 ---
 
@@ -28,38 +28,38 @@ library(knitr)
 library(dplyr)
 library(ggplot2)
 
-tpts <- params$tpts
+acc_output <- params$acc_output
 out_dir <- params$out_dir
 
 ```
 
 
 ```{r summary, echo = FALSE, include = TRUE}
-
-table(tpts[, "mapunit1"])
-
-# calculate summary of raw training data set
-trDat_sum <- tpts %>%
-  dplyr::group_by(mapunit1) %>%
-  dplyr::summarise(freq = n()) %>%
-  dplyr::mutate(prop = round(freq/sum(freq),3))
-
-ggplot(tpts, aes(mapunit1)) +
-  geom_bar() + 
-  theme_pem()+
-  theme(axis.text.x = element_text(angle = 90))+
-  scale_fill_discrete_sequential(palette = "Light Grays")
-
-trDat_slices <- tpts %>%
-  group_by (slice) %>%
-  dplyr::summarise(n.transect = length(unique(transect_id)),
-                   n.sites = length(unique(tid))) %>% 
-  pivot_longer(cols = c("n.transect", "n.sites"), names_to = "type", values_to = "number")
-
-ggplot(trDat_slices, aes(slice, number, fill = type)) +
-  geom_bar(stat = "identity", position = "dodge") + 
-  theme_pem()+
-  scale_fill_discrete_sequential(palette = "Light Grays")
+# 
+# table(tpts[, "mapunit1"])
+# 
+# # calculate summary of raw training data set
+# trDat_sum <- tpts %>%
+#   dplyr::group_by(mapunit1) %>%
+#   dplyr::summarise(freq = n()) %>%
+#   dplyr::mutate(prop = round(freq/sum(freq),3))
+# 
+# ggplot(tpts, aes(mapunit1)) +
+#   geom_bar() + 
+#   theme_pem()+
+#   theme(axis.text.x = element_text(angle = 90))+
+#   scale_fill_discrete_sequential(palette = "Light Grays")
+# 
+# trDat_slices <- tpts %>%
+#   group_by (slice) %>%
+#   dplyr::summarise(n.transect = length(unique(transect_id)),
+#                    n.sites = length(unique(tid))) %>% 
+#   pivot_longer(cols = c("n.transect", "n.sites"), names_to = "type", values_to = "number")
+# 
+# ggplot(trDat_slices, aes(slice, number, fill = type)) +
+#   geom_bar(stat = "identity", position = "dodge") + 
+#   theme_pem()+
+#   scale_fill_discrete_sequential(palette = "Light Grays")
 
 ```
 
