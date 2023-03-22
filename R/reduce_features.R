@@ -5,7 +5,6 @@
 #' @param subsmpl is the data from subsample_map_raster function
 #' @param cutoff set the correlation threshold for removal
 #' @param corr_plot output a correlation plot
-#'
 #' @keywords correlation, feature reduction
 #' @import dplyr
 #' @import magrittr
