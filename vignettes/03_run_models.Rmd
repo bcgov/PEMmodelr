@@ -29,9 +29,12 @@ reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% p
 
 ```
 
-## Including Plots
+## Run base model 
 
-You can also embed plots, for example:
+This runs the model with no balancing using the parameters generated in 02_prepare_model_inputs.R. 
+
+Alternatively you can run a balance optimise option (see other vignette)
+
 
 ```{r pressure, echo=FALSE}
 
@@ -62,7 +65,7 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
    use.neighbours = TRUE
 
 
-baseout <- run_base_model( train_data,   fuzz_matrix = fmat, mtry = 14, min_n = 7, use.neighbours = TRUE)
+baseout <- run_base_model(train_data, fuzz_matrix = fmat, mtry = 14, min_n = 7, use.neighbours = TRUE)
 
 mout
     
