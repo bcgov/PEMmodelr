@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r cars}
 # set up the standard inputs 
+fid <- setup_folders("CanyonCreek")
 
 in_dir <- fid$model_inputs0310[2]
 
@@ -27,58 +28,70 @@ min_n <- best_tune$min_n
 # select reduced variables
 reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% pull()
 
+bgc_pts_subzone <- readRDS(file.path(fid$model_inputs0310[2], "model_input_pts.rds"))
+
 ```
 
 ## Run base model 
 
 This runs the model with no balancing using the parameters generated in 02_prepare_model_inputs.R. 
 
-Alternatively you can run a balance optimise option (see other vignette)
+Alternatively you can run a balance optimise option (see below) 
 
 
 ```{r pressure, echo=FALSE}
 
-
-model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
-   
-    xx <- names(bgc_pts_subzone[1])
+model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-    alldat = bgc_pts_subzone[[xx]]
-    
-    tdat <- alldat %>% mutate(slice = factor(slice))
-    tdat <- tdat %>% 
-      dplyr::select(id, fnf, x, y, bgc_cat, mapunit1, mapunit2,                               position, transect_id, tid, slice, any_of(reduced_vars))
+  xx <- names(bgc_pts_subzone[1])
   
-    tdat <- tdat[complete.cases(tdat[ ,12:length(tdat)]),]
+  alldat = bgc_pts_subzone[[xx]]
   
-    # run basic model (no smote and no downsample)
-    
+  outDir = file.path(fid$model_draft[2], xx)
+  
+  tdat <- alldat %>% mutate(slice = factor(slice))
+  tdat <- tdat %>%
+    dplyr::select(id, fnf, x, y, bgc_cat,mapunit1, mapunit2, position,
+      transect_id, tid, slice, any_of(reduced_vars))
+  
+  tdat <- tdat[complete.cases(tdat[, 12:length(tdat)]), ]
+  
+  # run basic model (no smote and no downsample)
+  #temp fix: 
   train_data <- tdat %>%
     filter(slice != 1)
-
   train_data = as.data.table(train_data)
-  train_data <-  train_data[grep("ICHmc2_",mapunit1),]
+  train_data <-  train_data[grep("ICHmc2_", mapunit1), ]
   train_data <- droplevels(train_data)
-
-  fuzz_matrix = fmat
-  num_slice = 4
-   use.neighbours = TRUE
-
-
-baseout <- run_base_model(train_data, fuzz_matrix = fmat, mtry = 14, min_n = 7, use.neighbours = TRUE)
-
-mout
-    
-    
-    # run 
-    
-    
-      
-
   
-})
+  baseout <-run_base_model(
+      train_data,
+      fuzz_matrix = fmat,
+      mtry = 14, #mtry
+      min_n = 7, #min_n
+      use.neighbours = TRUE )
+  
+  write.csv(baseout, file.path(outDir, "acc_base_results.csv"))
+  
+  # generate model accuracy report
+  model_report(baseout, )
+  
+}
+```
 
 
+# Generate and accuracy report? 
+
+
+
+
+
+
+
+
+# Alternatively Run the balance optimised version 
+
+```{r}
 # # # data lines
   train_data <- trDat %>%
     filter(slice != 1)#%>%
@@ -106,27 +119,43 @@ opt_res <- optimise_balance(train_data,
                  mtry = 14,
                  min_n = 7, 
                  use.neighbours = TRUE,
-                 acc_mets =acc_mets)
+                 acc_mets = acc_mets)
 
 
 # get best balance: 
 getBestPars(opt_res, N = 5)
 
+```
 
-function (opt_res , N = 2) 
-{
-    if (N > nrow(optObj$scoreSummary)) 
-        stop("N is greater than the iterations that have been run.")
-    if (N == 1) {
-        return(as.list(head(optObj$scoreSummary[order(-get("Score"))], 
-            1))[names(optObj$bounds)])
-    }
-    else {
-        head(optObj$scoreSummary[order(-get("Score"))], N)[, 
-            names(optObj$bounds), with = FALSE]
-    }
-}
+
+# Run the final model 
+
+```{r}
+
+
+final_data <- trDat %>% dplyr::select(-c(tid,transect_id, target2, slice))
+ 
+final_recipe <- set_final_recipe(final_data, ds_ratio = ds_ratio, sm_ratio = sm_ratio )
+
+#
+#final_recipe <-
+#   recipe(target ~ ., data = final_data) %>%
+#    step_dummy(forest_nonforest, one_hot = TRUE) %>%
+#    step_downsample(target, under_ratio = ds_ratio) %>%
+#    step_smote(target, over_ratio = sm_ratio, neighbors = 2)
+
+pem_workflow <- workflow() %>%
+    add_recipe(final_recipe) %>%
+    add_model(randf_spec)
+  
+PEM_final <- fit(pem_workflow, final_data)
+
+# write out model
+saveRDS(PEM_final, file = paste(paste0(".", outDir), "final_tmodel.RDATA",sep = "/"))
+saveRDS(PEM_final, file = paste(paste0(".", outDir), "final_tmodel.rds",sep = "/"))
+
 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+

@@ -31,7 +31,6 @@ fid <- setup_folders("CanyonCreek")
 
 
 ```{r}
-
 res_size = "5m"
 mcols <- readRDS(file.path(fid$model_inputs0310[2], "full_covariate_list.rds"))
 
@@ -53,7 +52,6 @@ write.csv(reduced_vars, file.path(fid$model_inputs0310[2], "reduced_covariate_li
 
 
 ### Optional:  tuning optimization step (takes a long time to run)
-
 
 ```{r hyperparameter tuning}
 
@@ -130,6 +128,9 @@ bgc_pts_subzone <- lapply(zones, function (i){ # i =  zones[1]
   
 # format names
 names(bgc_pts_subzone) <- zones
+
+saveRDS(bgc_pts_subzone, file.path(fid$model_inputs0310[2], "model_input_pts.rds"))
+
 ```
 
 # Create a folder per BGC and run a check on the training points 
@@ -160,20 +161,4 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
 
 ```
 
-
-
-
-# run model 
-
-```{r}
-
-
-
-# option to just run model with no balanca 
-
-# option to balance. 
-
-
-
-```
 
