@@ -26,11 +26,11 @@ library(terra)
 library(sf)
 require(tidyverse)
 
-map <- rast(c("LocalData/rid_level.tif","LocalData/swi_slope.tif",
-              "LocalData/tpi.tif","LocalData/twi.tif","LocalData/valley_depth_2.tif"))
+# map <- rast(c("LocalData/rid_level.tif","LocalData/swi_slope.tif",
+#               "LocalData/tpi.tif","LocalData/twi.tif","LocalData/valley_depth_2.tif"))
 #thesample <- spatSample(map, size = 10000, method = "regular")
 #thesample <- na.omit(thesample)
-thesample <- st_read("LocalData/s1_clean_neighbours_allatts.gpkg")
+# thesample <- st_read("LocalData/s1_clean_neighbours_allatts.gpkg")
 #
 # ### KIRI build into the function to read the variables in map and use those to select from thesample
 # thesample <- as.data.table(thesample) %>% filter(Position == "Orig") %>% dplyr::select(rid_level, swi_slope, tpi, twi, valley_depth_2)
