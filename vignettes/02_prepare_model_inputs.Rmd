@@ -139,7 +139,7 @@ saveRDS(bgc_pts_subzone, file.path(fid$model_inputs0310[2], "model_input_pts.rds
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
    
-    xx <- names(bgc_pts_subzone[1])
+    #xx <- names(bgc_pts_subzone[1])
   
     alldat = bgc_pts_subzone[[xx]]
     #out_name = names(bgc_pts_subzone[xx])
@@ -147,7 +147,11 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx){
     # set up output folders
     outDir = file.path(fid$model_draft[2], xx)
     if(!dir.exists(file.path(outDir))){dir.create(file.path(outDir))} 
-    
+
+    # set up final model folder
+    finalDir = file.path(fid$model_final[2], xx)
+    if(!dir.exists(file.path(finalDir))){dir.create(file.path(finalDir))} 
+
     tdat <- alldat %>% mutate(slice = factor(slice))
     tdat <- tdat %>% 
       dplyr::select(id, fnf, x, y, bgc_cat, mapunit1, mapunit2,                               position, transect_id, tid, slice, everything())
