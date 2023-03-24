@@ -17,14 +17,15 @@
 #' @param min_bin the minimum number of points in a bin to be considered adequately sampled
 #' @import data.table
 #' @import terra
+#' @importfrom sf st_drop_geometry
 #' @keywords subsample, covariates, predictors, raster
 #' @export
 #' compare_hypercubes(target_hypercube, sample_hypercube, varlist = "all", method = "regular", type = "subsample", bins = 10,  minbin = 1,graph_compare = FALSE, return_spatial = FALSE,xy = TRUE)
 #
-library(data.table)
-library(terra)
-library(sf)
-require(tidyverse)
+# library(data.table)
+# library(terra)
+# library(sf)
+# require(tidyverse)
 
 # map <- rast(c("LocalData/rid_level.tif","LocalData/swi_slope.tif",
 #               "LocalData/tpi.tif","LocalData/twi.tif","LocalData/valley_depth_2.tif"))
@@ -37,7 +38,7 @@ require(tidyverse)
 # rnge <- range(map$rid_level)
 #
 # ###testingt
-# result <- compare_hypercubes(target_hypercube = map, sample_hypercube = thesample, bins = 9, minbin = 0)
+#result <- compare_hypercubes(target_hypercube = map, sample_hypercube = thesample, bins = 8)
 # #
 #
 compare_hypercubes <- function(target_hypercube, sample_hypercube, varlist = "all",
@@ -88,7 +89,8 @@ compare_hypercubes <- function(target_hypercube, sample_hypercube, varlist = "al
 
   target_freq[sample_freq, sample_num := i.freq,  on = c(value = "Code")]
   missed_bins <- target_freq[is.na(sample_num),value]
-  target_freq[,is_extreme := grepl("0|9",value)]
+  pattern <- paste0(0,"|",bins-1)
+  target_freq[,is_extreme := grepl(pattern,value)]
   target_freq[value < 10^(nlyr(target_hypercube)-1), is_extreme := TRUE]
   missed_extremes <- target_freq[is.na(sample_num) & is_extreme,value]
 
@@ -99,7 +101,7 @@ compare_hypercubes <- function(target_hypercube, sample_hypercube, varlist = "al
   ##all missed
   target_id[!is.na(target_id)] <- -1
   target_id[miss_id$lyr1] <- 1
-  plot(target_id)
+  #plot(target_id)
   cells_covered <- as.data.table(freq(target_id))
   miss_perc <- cells_covered[value == 1,count]/sum(cells_covered$count)
 
@@ -109,7 +111,6 @@ compare_hypercubes <- function(target_hypercube, sample_hypercube, varlist = "al
   #
   cellsex_covered <- as.data.table(freq(rast_extreme))
   missex_perc <- cellsex_covered[value == 1,count]/sum(cellsex_covered$count)
-  cat("Done!\n")
   return(list(percent_miss = miss_perc*100,percent_miss_extreme = missex_perc*100,
               miss_rast = target_id, miss_rast_ex = rast_extreme, var_range = ranges))
 
