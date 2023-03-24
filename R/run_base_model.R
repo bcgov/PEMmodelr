@@ -74,6 +74,6 @@ run_base_model <- function(train_data, fuzz_matrix, mtry = 14, min_n = 7, use.ne
       acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix)
     }
 
-    return(ref_acc)
+  return(ref_acc)
 
 }
