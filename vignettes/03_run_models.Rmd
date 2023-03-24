@@ -36,7 +36,7 @@ bgc_pts_subzone <- readRDS(file.path(fid$model_inputs0310[2], "model_input_pts.r
 
 This runs the model with no balancing using the parameters generated in 02_prepare_model_inputs.R. 
 
-Alternatively you can run a balance optimise option (see below) 
+Alternatively you can run a balance optimize option (see below) 
 
 
 ```{r pressure, echo=FALSE}
@@ -132,27 +132,37 @@ getBestPars(opt_res, N = 5)
 
 ```{r}
 
-
-final_data <- trDat %>% dplyr::select(-c(tid,transect_id, target2, slice))
- 
-final_recipe <- set_final_recipe(final_data, ds_ratio = ds_ratio, sm_ratio = sm_ratio )
-
-#
-#final_recipe <-
-#   recipe(target ~ ., data = final_data) %>%
-#    step_dummy(forest_nonforest, one_hot = TRUE) %>%
-#    step_downsample(target, under_ratio = ds_ratio) %>%
-#    step_smote(target, over_ratio = sm_ratio, neighbors = 2)
-
-pem_workflow <- workflow() %>%
-    add_recipe(final_recipe) %>%
-    add_model(randf_spec)
+model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-PEM_final <- fit(pem_workflow, final_data)
+  xx <- names(bgc_pts_subzone[1])
+  
+  alldat = bgc_pts_subzone[[xx]]
 
-# write out model
-saveRDS(PEM_final, file = paste(paste0(".", outDir), "final_tmodel.RDATA",sep = "/"))
-saveRDS(PEM_final, file = paste(paste0(".", outDir), "final_tmodel.rds",sep = "/"))
+  outDir = file.path(fid$model_final[2], xx)
+ 
+  final_data <- alldat %>%
+    dplyr::filter(position == "Orig") %>%
+    dplyr::select(mapunit1, any_of(reduced_vars))
+  
+  final_data <-  final_data[complete.cases(tdat[, 2:length(final_data)]), ]
+
+  # testing 
+  final_data = as.data.table(final_data)
+  final_data <-  final_data[grep("ICHmc2_", mapunit1), ]
+  # end testing 
+  
+  final_model <- run_final_model(
+      train_data,
+      fuzz_matrix = fmat,
+      mtry = 14, #mtry
+      min_n = 7, #min_n
+      ds_ratio = NULL, 
+      sm_ratio = NULL)
+  
+  # Output model 
+saveRDS(final_model, file.path(outDir, "final_model.rds"))
+
+}
 
 
 ```
