@@ -5,8 +5,8 @@
 #' Outputs include the markdown report, the cross validation object,
 #' and a binary model (RDS) that can then be used to predict on new data.
 #'
+#' @param acc_output  training points cleaned
 #' @param out_dir  output directory  This defaults to the project's root directory OR where the RMD script is saved.
-#' @param tpts  training points cleaned
 #' @keywords training data report
 #' @import rmarkdown
 #' @import tidyr
@@ -14,7 +14,7 @@
 #' @examples
 #' trainingpt_report(tpts,  out_dir)
 
-model_report <- function(tpts, out_dir){
+model_report <- function(acc_output, out_dir){
   # # # testing : GP
   #tpts =  tdat_all
   #out_dir = outDir
@@ -26,7 +26,7 @@ model_report <- function(tpts, out_dir){
   RMD <- system.file("rmd_template", "model_report.rmd", package ="PEMmodelr")
 
   rmarkdown::render(RMD,
-                    params = list(tpts = tpts,
+                    params = list(acc_output = acc_output,
                                   out_dir = out_dir),
                     output_dir = out_dir)                ## where to save the report
 

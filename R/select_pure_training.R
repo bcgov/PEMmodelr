@@ -4,7 +4,7 @@
 #'
 #' @param tps is the transect training points
 #' @importFrom dplyr filter mutate distinct
-#' @import magrittr
+#' @importFrom magrittr "%>%"
 #' @keywords mapunit
 #' @export
 #' @examples

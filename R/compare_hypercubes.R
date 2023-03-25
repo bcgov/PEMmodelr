@@ -17,6 +17,7 @@
 #' @param min_bin the minimum number of points in a bin to be considered adequately sampled
 #' @import data.table
 #' @import terra
+#' @importfrom sf st_drop_geometry
 #' @keywords subsample, covariates, predictors, raster
 #' @export
 #' ##
@@ -47,28 +48,38 @@ compare_hypercubes <- function(target_hypercube, sample_hypercube, varlist = "al
                                xy = TRUE) { #size = 100000,
 
   ## split and calculate full raster stack
-  cat("Creating target hypercube...\n")
-  target_classified <- terra::sapp(target_hypercube, \(x,...) as.numeric(classify(x,bins)))
+  if(bins > 10) warning("This function will probably give incorrect result if bins > 10")
+  message("Creating target hypercube...\n")
+  target_classified <- terra::sapp(target_hypercube, \(x,...) setValues(x,values(classify(x,bins))))
 
   concat_fn <- function(...){
-    return(as.integer(paste0(...)))
+    data <- list(...)
+    out <- data[[1]]
+    for(i in 2:length(data)){
+      out <- out + data[[i]]*10^(i-1)
+    }
+    return(out)
   }
   target_id <- lapp(target_classified,concat_fn)
 
   target_freq <- as.data.table(freq(target_id)) ##target_freq has counts of all bins
+
   setorder(target_freq,-count)
 
   ranges <- minmax(target_hypercube)
 
   ##split into same bins as full data set
   ##should update this for efficiency
-  cat("Creating sample hypercube...\n")
+  message("Creating sample hypercube...\n")
+  if(inherits(sample_hypercube,"sf")) sample_hypercube <- sf::st_drop_geometry(sample_hypercube)
   sample_hypercube <- as.data.table(sample_hypercube)
+  sample_hypercube <- sample_hypercube[,rev(names(target_classified)), with = F]
   sample_hypercube <- na.omit(sample_hypercube)
   sample_binned <- copy(sample_hypercube)
+  ranges <- ranges[,names(sample_hypercube)]
   for(i in 1:ncol(sample_hypercube)){
     sample_binned[[i]] <- (cut(sample_hypercube[[i]],
-                               breaks = seq(ranges[1,i],ranges[2,i],length.out = 11),
+                               breaks = seq(ranges[1,i],ranges[2,i],length.out = bins+1),
                                labels = F, include.lowest = T) - 1) ##start at 0
   }
   sample_binned <- as.data.table(sample_binned)
@@ -79,18 +90,19 @@ compare_hypercubes <- function(target_hypercube, sample_hypercube, varlist = "al
 
   target_freq[sample_freq, sample_num := i.freq,  on = c(value = "Code")]
   missed_bins <- target_freq[is.na(sample_num),value]
-  target_freq[,is_extreme := grepl("0|9",value)]
+  pattern <- paste0(0,"|",bins-1)
+  target_freq[,is_extreme := grepl(pattern,value)]
   target_freq[value < 10^(nlyr(target_hypercube)-1), is_extreme := TRUE]
   missed_extremes <- target_freq[is.na(sample_num) & is_extreme,value]
 
-  cat("Conducting spatial analysis...\n")
+  message("Conducting spatial analysis...\n")
   miss_id <- cells(target_id, missed_bins)
   missex_id <- cells(target_id, missed_extremes)
   rast_extreme <- copy(target_id)
   ##all missed
   target_id[!is.na(target_id)] <- -1
   target_id[miss_id$lyr1] <- 1
-  plot(target_id)
+  #plot(target_id)
   cells_covered <- as.data.table(freq(target_id))
   miss_perc <- cells_covered[value == 1,count]/sum(cells_covered$count)
 
@@ -100,7 +112,6 @@ compare_hypercubes <- function(target_hypercube, sample_hypercube, varlist = "al
   #
   cellsex_covered <- as.data.table(freq(rast_extreme))
   missex_perc <- cellsex_covered[value == 1,count]/sum(cellsex_covered$count)
-  cat("Done!\n")
   return(list(percent_miss = miss_perc*100,percent_miss_extreme = missex_perc*100,
               miss_rast = target_id, miss_rast_ex = rast_extreme, var_range = ranges))
 

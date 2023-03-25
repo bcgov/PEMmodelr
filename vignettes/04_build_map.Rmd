@@ -1,0 +1,39 @@
+---
+title: "04_build_map"
+author: "G. Perkins"
+date: "2023-03-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r  libraries}
+#remotes::install_github("bcgov/PEMprepr", build_vignettes = TRUE)
+devtools::load_all("D:\\PEM_DATA\\PEMprepr")
+devtools::load_all("D:\\PEM_DATA\\PEMsamplr")
+devtools::load_all("D:\\PEM_DATA\\PEMmodelr")
+
+library(PEMprepr)
+library(PEMsamplr)
+library(PEMmodelr)
+library(dplyr)
+library(data.table)
+library(tidymodels)
+
+fid <- setup_folders("CanyonCreek")
+
+```
+
+
+```{r cars}
+# set up the standard inputs 
+
+model_dir <- fid$model_final[2]
+
+cov_dir <- file.path(fid$cov_dir_1020[2], "5m")
+  
+  
+```

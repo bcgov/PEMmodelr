@@ -5,10 +5,10 @@
 #' @param n_iters Integer - number of optimisation iterations
 #' @return List with optimal downsample and smote
 #' @import data.table
-#' @import foreach
+#' @importFrom foreach "%do%"
 #' @import recipes
 #' @import themis
-#' @import ranger
+#' @importFrom ranger ranger
 #' @import ParBayesianOptimization
 #' @export
 #' @author Kiri Daust
@@ -113,7 +113,7 @@ optimise_balance <- function(train_data, fuzz_matrix, num_slice = 2, n_iters = 4
     #                .pred_class = factor(.pred_class, levels = all_units))]
     print(paste0("generating accuracy metrics for slice:",k))
 
-    acc <- report_model_accuracy(pred_all, fuzzmatrx = fuzz_matrix)
+    acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix)
     acc <- acc[,acc_mets]
     acc
   }
@@ -156,7 +156,7 @@ optimise_balance <- function(train_data, fuzz_matrix, num_slice = 2, n_iters = 4
       test.pred <- test.pred[!is.na(test.pred$.pred_class),]
 
       #harmonize_factors_dt(test.pred)
-      mod_acc <- report_model_accuracy(test.pred,fuzzmatrx = fuzz_matrix)
+      mod_acc <- acc_metrics(test.pred,fuzzmatrx = fuzz_matrix)
       mod_acc <- mod_acc[,acc_mets]
       mod_acc
       # accMet <- test.pred[,.(Correct = if(unique(target) %in% pred_class) 1 else 0),

@@ -10,7 +10,7 @@
 #' for near misses
 #' @param theta the function always returns values for theta 0 and theta 1.
 #' The theta setting sets an intermediate theta setting to report efault set to 0.5
-#'
+#' @importFrom magrittr "%>%"
 #' @keywords accuracy, fuzzy sets, theta
 #' @export
 # library(yardstick)
@@ -26,7 +26,7 @@
 #pred_data = pred_all
 #fuzzmatrx = fuzz_matrix[,1:3]
 
-report_model_accuracy <- function(pred_data, fuzzmatrx, theta = 0.5) {
+acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
 
   ##1.  Selects max value between primary and secondary calls
  # pred_data = pred_all

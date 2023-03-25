@@ -7,13 +7,15 @@
 #' @param corr_plot output a correlation plot
 #' @keywords correlation, feature reduction
 #' @import dplyr
-#' @import magrittr
+#' @importFrom magrittr "%>%"
 #' @importFrom stats cor
 #' @importFrom caret findCorrelation
+#' @importFrom corrplot corrplot.mixed
 #' @export
 #' @examples
 #' reduce_features(subsmpl, 0.9, corr_plot = FALSE)
-#
+
+
 reduce_features <- function(subsmpl, cutoff = 0.90, corr_plot = FALSE) {
 
   #subsmpl <- subsmpl %>% dplyr::select(-any_of(c("x", "y")))
