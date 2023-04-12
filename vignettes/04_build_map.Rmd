@@ -31,9 +31,22 @@ fid <- setup_folders("CanyonCreek")
 ```{r cars}
 # set up the standard inputs 
 
-model_dir <- fid$model_final[2]
-
 cov_dir <- file.path(fid$cov_dir_1020[2], "5m")
+rtemplate <- terra::rast(file.path(cov_dir, "template.tif"))
   
-  
+
+model_dir <- fid$model_final[2]
+bgc_list <- list.files(model_dir)
+
+# loop for BGC S
+bgc <- bgc_list[3]
+
+tile_dir <- file.path(model_dir, bgc, "tiles")
+ if(!dir.exists(file.path(tile_dir))){dir.create(file.path(tile_dir))} 
+
+
+fmodel <- readRDS(file.path(model_dir, bgc,"final_model.rds"))
+
+
+
 ```

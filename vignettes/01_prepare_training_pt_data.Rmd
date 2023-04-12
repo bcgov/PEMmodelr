@@ -48,13 +48,7 @@ We will already have a set of clean and attributed data from PEM and ensure you 
 
 ```{r}
 # read in Map key 
-mapkey <- read.csv(file.path(fid$AOI_dir[2], "DateCreek_MapUnitLegend.csv"))
-
-# # #read in the fuzzy index
-# fMat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix_basic.csv")) %>%
-#   dplyr::select(c(target, Pred, fVal)) %>% dplyr::distinct ()
-# 
-# fMat <- data.table(fMat)
+mapkey <- read.csv(file.path(fid$AOI_dir[2], "Deception_MapUnitLegend.csv"))
 
 # read in training points
 allpts <- st_read(file.path(fid$trainpts_att[2], "allpts.gpkg"))
@@ -71,11 +65,21 @@ bec <- sf::st_read(file.path(fid$shape_dir_1010[2], "bec.gpkg")) %>% sf::st_cast
 #In this example we will map to "BaseMapUnit" attribute
 
 ```{r}
+
 # define units to map
-mpts <- define_mapunits(allpts, mapkey, "BaseMapUnit")
+mpts <- define_mapunits(allpts, mapkey, "Full")
 
 # get list of unique values
 maplist <- list_mapunits(mpts)
+
+sf::st_write(mpts,file.path(fid$model_inputs0310[2], "training_pts.gpkg"), delete_layer = TRUE)
+
+
+# run a report to check the coverage of map unist? 
+
+
+trainingpt_report(mpts, )
+
 
 # match to the key and filter for forest and non_forest points
 subzones <- unique(bec$MAP_LABEL)
@@ -101,7 +105,6 @@ tpts <- tpts %>%
 # check minimum number of mapunits and filter out 
 ftpts <- filter_min_mapunits(tpts, min_no = 10)
     
-
 # select the covariates for the model 
 mcols <- c("dem_convergence", "dem_convexity", #"dem_cnetwork" ,
            "dem_dah" ,"dem_dem_preproc",  #"dem_flow_accum_ft" , 
