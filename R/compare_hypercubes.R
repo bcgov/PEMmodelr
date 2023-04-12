@@ -17,10 +17,12 @@
 #' @param min_bin the minimum number of points in a bin to be considered adequately sampled
 #' @import data.table
 #' @import terra
-#' @importfrom sf st_drop_geometry
+#' @importFrom sf st_drop_geometry
 #' @keywords subsample, covariates, predictors, raster
 #' @export
-#' ##
+#' @examples
+#' # example code
+#'
 
 # library(data.table)
 # library(terra)
