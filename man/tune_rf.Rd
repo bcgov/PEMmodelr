@@ -4,10 +4,10 @@
 \alias{tune_rf}
 \title{Find optimal tuning for rF model}
 \usage{
-tune_rf(tpt, output = "full", accuracy_type = NULL)
+tune_rf(tran_dat, output = "full", accuracy_type = NULL)
 }
 \arguments{
-\item{tpt}{is the transect training points in table format}
+\item{tran_dat}{is the transect training points in table format}
 
 \item{output}{type of output wanted, can be "full" or "best"}
 

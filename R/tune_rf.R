@@ -4,7 +4,7 @@
 #' Saves these hyperparameters for use in model building.
 #'
 #'
-#' @param tpt is the transect training points in table format
+#' @param tran_dat is the transect training points in table format
 #' @param output type of output wanted, can be "full" or "best"
 #' @param accuracy type (optional) only applies when output =="best". Options are "accuracy" or "roc")
 #' @keywords randomforest, hyperparameter tuning
@@ -19,10 +19,10 @@
 #'
 
 
-tune_rf <- function(tpt, output = "full", accuracy_type = NULL) {
+tune_rf <- function(tran_dat, output = "full", accuracy_type = NULL) {
 
   # possible add another function to decide output (accuracy, full outputs)
-  #tran_dat = trDat
+ # tran_dat = trDat
 
   trees_split <- rsample::initial_split(tran_dat, strata = slice, prop = 1 / 10)
   trees_train <- rsample::training(trees_split)
