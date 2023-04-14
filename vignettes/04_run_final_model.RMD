@@ -1,6 +1,38 @@
+---
+title: "03_run_final_model"
+author: "G. Perkins"
+date: "2023-04-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
 
 # Run the final model 
+
+```{r cars}
+# set up the standard inputs 
+
+fid <- setup_folders("CanyonCreek")
+
+in_dir <- fid$model_inputs0310[2]
+
+fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix_basic.csv" ))%>%
+  dplyr::select(target, Pred, fVal)
+
+# set up tuning (applies to all models)
+best_tune <- fread(file.path (in_dir, "best_tuning.csv"))
+mtry <- best_tune$mtry
+min_n <- best_tune$min_n
+
+# select reduced variables
+reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% pull()
+
+bgc_pts_subzone <- readRDS(file.path(fid$model_inputs0310[2], "model_input_pts.rds"))
+
+```
 
 ```{r}
 

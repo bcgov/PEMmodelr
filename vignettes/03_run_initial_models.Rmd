@@ -38,7 +38,6 @@ This runs the model with no balancing using the parameters generated in 02_prepa
 
 Alternatively you can run a balance optimize option (see below) 
 
-
 ```{r pressure, echo=FALSE}
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
@@ -76,7 +75,8 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   # generate model accuracy report
   model_report(baseout, outDir)
   
-}
+})
+
 ```
 
 
@@ -127,45 +127,6 @@ getBestPars(opt_res, N = 5)
 
 ```
 
-
-# Run the final model 
-
-```{r}
-
-model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
-  
-  xx <- names(bgc_pts_subzone[1])
-  
-  alldat = bgc_pts_subzone[[xx]]
-
-  outDir = file.path(fid$model_final[2], xx)
- 
-  final_data <- alldat %>%
-    dplyr::filter(position == "Orig") %>%
-    dplyr::select(mapunit1, any_of(reduced_vars))
-  
-  final_data <-  final_data[complete.cases(tdat[, 2:length(final_data)]), ]
-
-  # testing 
-  final_data = as.data.table(final_data)
-  final_data <-  final_data[grep("ICHmc2_", mapunit1), ]
-  # end testing 
-  
-  final_model <- run_final_model(
-      train_data,
-      fuzz_matrix = fmat,
-      mtry = 14, #mtry
-      min_n = 7, #min_n
-      ds_ratio = NULL, 
-      sm_ratio = NULL)
-  
-  # Output model 
-saveRDS(final_model, file.path(outDir, "final_model.rds"))
-
-}
-
-
-```
 
 
 
