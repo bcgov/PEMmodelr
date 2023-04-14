@@ -7,7 +7,7 @@
 #' @param use.neighbours. if you want to incluse all neighbours in the calculation
 #' @return datatable of accuracy metric
 #' @export
-#' @importFrom foreach "%do%"
+#' @importFrom foreach "%do%" foreach
 #' @importFrom magrittr "%>%"
 #' @importFrom ranger ranger
 #' @examples
@@ -46,7 +46,7 @@ run_base_model <- function(train_data, fuzz_matrix, mtry = 14, min_n = 7, use.ne
 
     }
 
-    ref_acc <- foreach(k = levels(slices),.combine = rbind) %do% {
+    ref_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
       #k = levels(slices)[1]
       ref_train <- ref_dat[slice != k & position == "Orig",]
       ref_train[,c("id","tid","mapunit2", "position","slice","transect_id","bgc_cat") := NULL]
