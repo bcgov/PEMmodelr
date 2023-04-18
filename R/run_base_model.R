@@ -71,7 +71,9 @@ run_base_model <- function(train_data, fuzz_matrix, mtry = 14, min_n = 7, use.ne
 
       print(paste0("generating accuracy metrics for slice:",k))
 
-      acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix)
+      acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix)%>%
+        dplyr::mutate(slice = k)
+
     }
 
   return(ref_acc)
