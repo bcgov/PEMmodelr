@@ -96,6 +96,10 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
       dplyr::select(-trans.tot.new)
     #   mutate(pred.new = ifelse(mapunit.new %in% add.pred.lev, as.character(mapunit), as.character(.pred_class))) %>%
     #     mutate(mapunit = mapunit.new, .pred_class = pred.new)
+  } else {
+    pdata <- pdata %>%
+      dplyr::mutate(mapunit.new =  as.character(mapunit1)) %>%
+      mutate_if(is.character, as.factor)
   }
 
   ### harmonize factor levels
