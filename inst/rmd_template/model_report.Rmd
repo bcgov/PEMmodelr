@@ -2,24 +2,33 @@
 title: "Model_report"
 output: html_document
 params:
+  trDat: trDat
   acc_output: acc_output
   out_dir: out_dir
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, cache=FALSE,
+                      warning = FALSE, message = FALSE,
+                      results = 'show',
+                      eval = TRUE)  ## flag eval = false for quick text edits
+
 ```
 
 This model uses the following parameters: 
 
-* **mapunit:** mapunit1
+* **mapunit:** "mapunit1"
 * **training point set : **
 * **model response and covariates: ** 
 
 
+## Response variable: 
+
 The following training points and frequency of points were used in the model. 
 
-```{r cars}
+The following training points and frequency of points were used in the model. 
+
+```{r setup libs, echo = FALSE}
 
 ## Load library
 library(data.table)
@@ -28,6 +37,7 @@ library(knitr)
 library(dplyr)
 library(ggplot2)
 
+trDat <- params$trDat
 acc_output <- params$acc_output
 out_dir <- params$out_dir
 
@@ -35,35 +45,223 @@ out_dir <- params$out_dir
 
 
 ```{r summary, echo = FALSE, include = TRUE}
-# 
-# table(tpts[, "mapunit1"])
-# 
-# # calculate summary of raw training data set
-# trDat_sum <- tpts %>%
-#   dplyr::group_by(mapunit1) %>%
-#   dplyr::summarise(freq = n()) %>%
-#   dplyr::mutate(prop = round(freq/sum(freq),3))
-# 
-# ggplot(tpts, aes(mapunit1)) +
-#   geom_bar() + 
-#   theme_pem()+
-#   theme(axis.text.x = element_text(angle = 90))+
-#   scale_fill_discrete_sequential(palette = "Light Grays")
-# 
-# trDat_slices <- tpts %>%
-#   group_by (slice) %>%
-#   dplyr::summarise(n.transect = length(unique(transect_id)),
-#                    n.sites = length(unique(tid))) %>% 
-#   pivot_longer(cols = c("n.transect", "n.sites"), names_to = "type", values_to = "number")
-# 
-# ggplot(trDat_slices, aes(slice, number, fill = type)) +
-#   geom_bar(stat = "identity", position = "dodge") + 
-#   theme_pem()+
-#   scale_fill_discrete_sequential(palette = "Light Grays")
+trDat <- trDat %>% dplyr::filter(position == "Orig")
+
+table(trDat[, "mapunit1"])
+
+# calculate summary of raw training data set
+trDat_sum <- trDat %>%
+  dplyr::group_by(mapunit1) %>%
+  dplyr::summarise(freq = n()) %>%
+  dplyr::mutate(prop = round(freq/sum(freq),3))
+
+ggplot(trDat, aes(mapunit1)) +
+  geom_bar() + 
+  theme_pem()+
+  theme(axis.text.x = element_text(angle = 90))+
+  scale_fill_discrete_sequential(palette = "Light Grays")
+
+trDat_slices <- trDat %>%
+  group_by (slice) %>%
+  dplyr::summarise(n.transect = length(unique(transect_id)),
+                   n.sites = length(unique(tid))) %>% 
+  pivot_longer(cols = c("n.transect", "n.sites"), names_to = "type", values_to = "number")
+
+ggplot(trDat_slices, aes(slice, number, fill = type)) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  theme_pem()+
+  scale_fill_discrete_sequential(palette = "Light Grays")
 
 ```
 
 
+
+
+## Comparison of CV and test metrics
+
+```{r, cv vs test overall accuracy with confidence intervals, echo = FALSE, eval = TRUE}
+#Compare the CV metrics to test metrics to see model fit 
+acc_output <- baseout
+
+
+
+acc <- acc_output %>%    
+  dplyr::select(mapunit1, slice, spat_p_theta1,spat_p_theta.5, spat_p_theta0,      aspat_p_theta1,aspat_p_theta.5, aspat_p_theta0 ) %>%
+  distinct() %>% 
+  mutate(slice = factor(slice))
+
+acc2 <- acc  %>%
+  pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "value") %>%
+  distinct() %>%
+  mutate(type = case_when(
+    accuracy_type %in% c("MLaccuracy", "OOB_inv", "kappa", "mcc") ~ "0_machine",
+    stringr::str_detect(accuracy_type, "^spat_p_theta") ~ "1_spatial",
+    stringr::str_detect(accuracy_type, "aspat_p_theta") ~ "2_aspatial")) %>%
+  filter(!is.na(type)) %>% filter(!accuracy_type == "slice") %>%
+  mutate(accuracy_type = stringr::str_replace(accuracy_type, "aspat_p_theta_", "\u0398 "),
+         accuracy_type = stringr::str_replace(accuracy_type, "^spat_p_theta_", "\u0398 ")) %>%
+  mutate(accuracy_type = factor(accuracy_type), type = factor(type))
+
+#,
+# accuracy_type = str_replace(accuracy_type, "spat_p_theta", "\u0398 "),
+# accuracy_type = str_replace(accuracy_type, "spat_p_theta", "\u0398 "))
+
+overall_acc <- ggplot(aes(y = value, x = accuracy_type, fill = slice), data = acc2 ) + 
+  geom_boxplot() +
+  scale_fill_brewer(type = "qual") +
+  facet_grid(~type, labeller = labeller(type = 
+                                             c("1_spatial" = "spatial",
+                                               "2_aspatial" = "aspatial")), scales = "free_x")+
+  geom_hline(yintercept = 0.65,linetype ="dashed", color = "black") + 
+  theme_pem_facet() +
+  scale_fill_manual(values=c("grey90", "grey75", "grey50", "grey35","grey10"))+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") +
+  xlab("Metric") + ylab("Accuracy") + 
+  ylim(0, 1)
+
+overall_acc
+
+# 
+# acc_sum <- acc_output %>%
+#         dplyr::select(slice, 
+#                   aspat_p_overall,  aspat_p_meanacc, 
+#                   aspat_fp_overall,  aspat_fp_meanacc,
+#                   spat_p_overall, spat_p_meanacc,
+#                   spat_pf_overall,  spat_pf_meanacc, 
+#                   aspat_pa_overall,  aspat_pa_meanacc,
+#                   aspat_fpa_overall, aspat_fpa_meanacc,
+#                   spat_pa_overall,  spat_pa_meanacc,
+#                   spat_fpa_overall, spat_fpa_meanacc ) %>%
+#   distinct() 
+#   
+# acc_sum_long <- acc_sum %>%
+#     pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "value") %>%
+#    filter(!accuracy_type == "transect_no") %>%
+#   mutate(type = case_when(
+#     str_detect(accuracy_type, "aspat") ~ "aspatial",
+#     str_detect(accuracy_type, "spat") ~ "spatial"))  %>%
+#   mutate(type_model = case_when(
+#     str_detect(accuracy_type, "_overall") ~ "area-weighted",
+#     str_detect(accuracy_type, "_meanacc") ~ "unweighted")) %>%
+#   mutate(accuracy_type_label = case_when(
+#     str_detect(accuracy_type, "_p_") ~ "p",
+#     str_detect(accuracy_type, "_pa_") ~ "pa",
+#     str_detect(accuracy_type, "_fp_") ~ "fp",
+#     str_detect(accuracy_type, "_pf_") ~ "fp",
+#     str_detect(accuracy_type, "_fpa_") ~ "fpa")) %>%
+#   mutate(type_label = paste0(type, "_", type_model))
+# 
+# # calculate the weighted mean and st dev summary 
+# 
+# acc_wt_ave <- acc_sum %>%
+#   group_by(acc_type) %>%
+#   dplyr::summarise(dplyr::mutate(across(where(is.numeric), ~ weighted.mean(.x, transect_no, na.rm = FALSE)))) %>%
+#   pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "ave_wt") 
+#             
+# acc_wt_sd <- acc_sum %>%         
+#    group_by(acc_type) %>%         
+#   dplyr::summarise(mutate(across(where(is.numeric), ~ sqrt(wtd.var(.x, transect_no, na.rm = FALSE))))) %>%
+#   pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "sd_wt") 
+#           
+# acc_wt_sum <- left_join(acc_wt_ave, acc_wt_sd ) %>%
+#   filter(!accuracy_type == "transect_no") 
+# 
+# acc_wt_sum <- acc_wt_sum  %>%
+#   mutate(type = case_when(
+#     str_detect(accuracy_type, "aspat") ~ "aspatial",
+#     str_detect(accuracy_type, "spat") ~ "spatial")) %>%
+#   mutate(type_model = case_when(
+#     str_detect(accuracy_type, "_overall") ~ "area-weighted",
+#     str_detect(accuracy_type, "_meanacc") ~ "unweighted")) %>%
+#   mutate(accuracy_type_label = case_when(
+#     str_detect(accuracy_type, "_p_") ~ "p",
+#     str_detect(accuracy_type, "_pa_") ~ "pa",
+#     str_detect(accuracy_type, "_fp_") ~ "fp",
+#     str_detect(accuracy_type, "_pf_") ~ "fp",
+#     str_detect(accuracy_type, "_fpa_") ~ "fpa")) %>%
+#   mutate(type_label = paste0(type, "_", type_model))
+# 
+# 
+# # set up order for plots 
+# acc_sum_long$type_f = factor(acc_sum_long$type_label, levels = c("spatial_area-weighted" ,"aspatial_area-weighted", "spatial_unweighted",  "aspatial_unweighted"))
+# 
+# acc_sum_long$accuracy_type_label = factor(acc_sum_long$accuracy_type_label, levels = c("p","pa", "fp","fpa"))
+# 
+# 
+# # plot both the cv and test metrics
+# p2 <- ggplot(aes(y = value, x = accuracy_type_label , fill = acc_type), data = acc_sum_long ) + 
+#    geom_boxplot() +
+#    facet_wrap(~type_f, scales = "free_x", nrow = 2) +
+#    geom_hline(yintercept = 65,linetype ="dashed", color = "black") + 
+#    ggtitle("Accuracy measures (median + quartiles)") + 
+#    xlab("Mapunit") + ylab("Accuracy") + 
+#    ylim(-0.05, 100)+
+#    theme_pem_facet()+ 
+#    scale_fill_discrete_sequential(palette = "Light Grays")
+# 
+# p2
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Aspatial and Spatial (overall and average accuracy types)
+
+```{r, overall accuracy with confidence intervals, echo = FALSE, eval = FALSE}
+# plot only the test metrics 
+test_sum_long <-  %>%
+  dplyr::filter(acc_type == "test_estimate") %>%
+  left_join( acc_wt_sum )
+
+test_sum_long$accuracy_type_label = factor(test_sum_long$accuracy_type_label, levels = c("p","pa", "fp","fpa"))
+
+
+p3 <- ggplot(aes(y = value, x = accuracy_type_label), data = test_sum_long) + 
+   geom_boxplot() +
+   facet_wrap(~type_f, scales = "free_y", nrow = 2) +
+   geom_hline(yintercept = 65,linetype ="dashed", color = "black") + 
+   ggtitle("Accuracy measures (median + quartiles)") + 
+   xlab("Mapunit") + ylab("Accuracy") + 
+   ylim(-0.05, 100) +
+   #theme_bw() + 
+   theme_pem_facet() + 
+   scale_fill_discrete_sequential(palette = "Light Grays")+ 
+   geom_point(aes(y = ave_wt, x = accuracy_type_label), data = test_sum_long, shape = 5, size = 2) 
+  
+
+p3
+
+```
+
+
+
+
+## Accuracy per mapunit
+
+We can compare map unit accuracy levels to assess under or acceptable performance per map units. 
+
+```{r generate overall mapunit, echo = FALSE, eval = FALSE}
+
+# map unit plots: 
+
+mu_acc <- acc2
+
+
+mu_unit <- mu_acc %>%
+  filter(type_model == "mapunit") %>%
+  dplyr::select(-c(acc_type, type_model ))
+
+
+mu_unit$accuracy_type_label = factor(mu_unit$accuracy_type_label, levels = c("p","pa", "fp","fpa"))
+
+
+p4 <- ggplot(aes(y = value, x = mapunit1, fill = type), data = acc2 ) + 
+   geom_point() +
+   facet_wrap(~accuracy_type, scales = "free_x", nrow = 2) +
+   ggtitle("Mapunit accuracy measures ") + 
+   xlab("accuracy measure") + ylab("Proportion of Accurate calls") + 
+   ylim(-0.05, 1)+
+   theme_pem_facet()+ 
+   scale_fill_discrete_sequential(palette = "Light Grays")
+  
+
+p4
+

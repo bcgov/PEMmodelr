@@ -14,7 +14,7 @@
 #' @examples
 #' trainingpt_report(tpts,  out_dir)
 
-model_report <- function(acc_output, out_dir){
+model_report <- function(trDat, acc_output, out_dir){
   # # # testing : GP
   #tpts =  tdat_all
   #out_dir = outDir
@@ -26,7 +26,8 @@ model_report <- function(acc_output, out_dir){
   RMD <- system.file("rmd_template", "model_report.rmd", package ="PEMmodelr")
 
   rmarkdown::render(RMD,
-                    params = list(acc_output = acc_output,
+                    params = list(trDat = trDat,
+                                  acc_output = acc_output,
                                   out_dir = out_dir),
                     output_dir = out_dir)                ## where to save the report
 
