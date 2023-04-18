@@ -29,13 +29,14 @@
 acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
 
   ##1.  Selects max value between primary and secondary calls
- # pred_data = pred_all
-#  fuzzmatrx = fuzz_matrix
-#  theta = 0.5
+  #pred_data = pred_all
+  #fuzzmatrx = fuzz_matrix
+  #theta = 0.5
   # end testing line
 
   preds = c("id","mapunit1", "mapunit2", ".pred_class")
   pred_data <- pred_data %>% dplyr::select(any_of(preds))
+
   data1 <- dplyr::left_join(pred_data, fuzzmatrx, by = c("mapunit1" = "target", ".pred_class" = "Pred")) %>%
     replace(is.na(.), 0) %>%
     dplyr::mutate_if(is.character, as.factor) %>%
@@ -46,15 +47,16 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
     replace(is.na(.), 0) %>%
     dplyr::rename("alt_fuzzval" = fVal)
 
+
   ##2. selects the neighbour with max value
+
   pdata <- data2 %>%
     dplyr::rowwise() %>%
     dplyr::mutate(pa_fuzzval = max(p_fuzzval, alt_fuzzval)) %>%
     dplyr::group_by(id) %>%
     dplyr::top_n(1, abs(pa_fuzzval)) %>%
     dplyr::distinct(id, .keep_all = TRUE) %>%
-    data.frame() #%>%
-   # dplyr::select(-p_fuzzval, -alt_fuzzval)
+    data.frame()
 
   pdata <- pdata %>%
     dplyr::mutate_if(is.factor, as.character) %>%
@@ -68,38 +70,48 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::mutate_if(is.character, as.factor) %>%
     data.frame() %>%
     dplyr::add_count(mapunit1, name = "trans.tot") %>%
-    dplyr::add_count(.pred_class, name = "pred.tot") # %>% group_by(mapunit) %>%
-  # dplyr::mutate(pred.tot_pa = sum(pa_Val)) %>% ungroup()
+    dplyr::add_count(.pred_class, name = "pred.tot")
 
+  # get all unique mapunit classes
   targ.lev <- as.data.frame(levels(pdata$mapunit1)) %>%
     dplyr::rename(levels = 1) %>%
     droplevels()
 
+  # get all unique predicted classes
   pred.lev <- as.data.frame(levels(pdata$.pred_class)) %>%
     dplyr::rename(levels = 1) %>%
     droplevels()
 
+  # check for levels predicted that were not in the transect
   add.pred.lev <- dplyr::anti_join(pred.lev, targ.lev, by = "levels")
-  pdata <- pdata %>%
-    dplyr::mutate(
-      mapunit.new = ifelse(.pred_class %in% add.pred.lev, as.character(.pred_class), as.character(mapunit1)),
-      trans.tot.new = ifelse(.pred_class %in% add.pred.lev, 0, trans.tot)
-    ) %>%
-    mutate_if(is.character, as.factor) %>%
-    mutate(trans.tot = trans.tot.new)
-  #   mutate(pred.new = ifelse(mapunit.new %in% add.pred.lev, as.character(mapunit), as.character(.pred_class))) %>%
-  #     mutate(mapunit = mapunit.new, .pred_class = pred.new)
+
+  if(length(add.pred.lev > 0)){
+    pdata <- pdata %>%
+      dplyr::mutate(
+        mapunit.new = ifelse(pdata$.pred_class %in% add.pred.lev, as.character(.pred_class), as.character(mapunit1)),
+        trans.tot.new = ifelse(.pred_class %in% add.pred.lev, 0, trans.tot)
+      ) %>%
+      mutate_if(is.character, as.factor) %>%
+      mutate(trans.tot = trans.tot.new) %>%
+      dplyr::select(-trans.tot.new)
+    #   mutate(pred.new = ifelse(mapunit.new %in% add.pred.lev, as.character(mapunit), as.character(.pred_class))) %>%
+    #     mutate(mapunit = mapunit.new, .pred_class = pred.new)
+  }
+
   ### harmonize factor levels
   targ.lev <- levels(pdata$mapunit1)
   pred.lev <- levels(pdata$.pred_class)
   levs <- c(targ.lev, pred.lev) %>% unique()
-  pdata$mapunit <- factor(pdata$mapunit1, levels = levs)
+  #generate a new mpaunit with all levs
+  pdata$mapunit1 <- factor(pdata$mapunit1, levels = levs)
   pdata$.pred_class <- factor(pdata$.pred_class, levels = levs)
 
   pdata <- pdata %>%
-    tidyr::drop_na(mapunit) %>%
+    tidyr::drop_na(mapunit1) %>%
     dplyr::mutate(no.classes = length(levs)) %>%
-    dplyr::select(-pred.tot, -trans.tot.new)
+    dplyr::select(-pred.tot)
+
+  # perhaps need predicted tot still in here
 
   ### 1)machine learning stats
   pdata <- harmonize_factors(pdata)
@@ -108,11 +120,13 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::select(.estimate) %>%
     as.numeric() %>%
     round(3)
+
   mcc <- pdata %>%
     yardstick::mcc(mapunit1, .pred_class, na_rm = TRUE) %>%
     dplyr::select(.estimate) %>%
     as.numeric() %>%
     round(3)
+
   # sens <- data %>% sens(mapunit, .pred_class, na_rm = TRUE)
   # spec <- data %>% yardstick::spec(mapunit, .pred_class, na_rm = TRUE)
   # prec <- data %>% precision(mapunit, .pred_class, na.rm = TRUE)
@@ -123,26 +137,29 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::select(.estimate) %>%
     as.numeric() %>%
     round(3)
+
   ### 2) spatial stats
   spatial_acc <- pdata %>%
     dplyr::mutate(trans.sum = n(), acc = acc, kap = kap) %>%
     ### here the problem is differing number of mapunit vs .pred_class
     dplyr::group_by(mapunit.new) %>%
-    # dplyr::mutate(trans.tot = n()) %>%
-    # mutate(no.classes = length(unique(mapunit.new))) %>%
     dplyr::mutate(spat_p_correct = sum(p_Val)) %>%
     dplyr::mutate(spat_pa_correct = sum(pa_Val)) %>%
     dplyr::mutate(spat_pf_correct = sum(p_fuzzval)) %>%
     dplyr::mutate(spat_paf_correct = sum(pa_fuzzval)) %>%
-    dplyr::select(-id, -mapunit2, -.pred_class, -mapunit, -p_fuzzval, -pa_fuzzval, -p_Val, -pa_Val) %>%
     ungroup() %>%
-    distinct() %>%
+    dplyr::select(-id,-mapunit1, -mapunit2, -.pred_class, -p_fuzzval, -pa_fuzzval, -p_Val, -pa_Val, -alt_fuzzval) %>%
+    distinct()
+
+  spatial_acc <- spatial_acc %>%
     dplyr::mutate(spat_p = spat_p_correct / trans.tot) %>%
     dplyr::mutate(spat_pa = spat_pa_correct / trans.tot) %>%
     dplyr::mutate(spat_pf = spat_pf_correct / trans.tot) %>%
     dplyr::mutate(spat_paf = spat_paf_correct / trans.tot) %>%
     dplyr::mutate(across(where(is.numeric), ~ replace(., is.nan(.), 0))) %>%
-    dplyr::mutate(across(where(is.numeric), ~ replace(., is.infinite(.), 0))) %>%
+    dplyr::mutate(across(where(is.numeric), ~ replace(., is.infinite(.), 0)))
+
+  spatial_acc <-  spatial_acc %>%
     dplyr::mutate(
       spat_p_theta1 = mean(spat_p),
       spat_p_theta0 = sum(spat_p_correct) / trans.sum,
@@ -167,12 +184,13 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
       spat_paf_theta.5 = sum(spat_paf_theta_work)
     ) %>%
     dplyr::select(-spat_p_theta_wt, -spat_p_theta_work, -spat_pa_theta_wt, -spat_pa_theta_work, -spat_paf_theta_wt, -spat_paf_theta_work) %>%
-    dplyr::rename(mapunit = mapunit.new)
+    distinct()%>%
+    dplyr::rename(mapunit1 = mapunit.new)
 
   # 3) calculate aspatial metrics (overall and mapunit % correct)
   aspatial_mapunit <- pdata %>%
-    dplyr::select(mapunit) %>%
-    dplyr::add_count(mapunit, name = "trans.tot") %>%
+    dplyr::select(mapunit1) %>%
+    dplyr::add_count(mapunit1, name = "trans.tot") %>%
     dplyr::distinct() %>%
     dplyr::mutate(trans.sum = sum(trans.tot))
   #
@@ -181,32 +199,19 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::add_count(.pred_class, name = "pred.tot") %>%
     dplyr::distinct()
 
-  aspatial_acc <- left_join(aspatial_mapunit, aspatial_pred, by = c("mapunit" = ".pred_class")) %>%
-    dplyr::select(mapunit, trans.tot, pred.tot) %>% # group_by(mapunit) %>%
-    # mutate(p_correct = sum(p_Val),
-    # pa_correct = sum(pa_Val),
-    # paf_correct = sum(pa_fuzzval)) %>%
-    # ungroup() %>%
-    dplyr::mutate(trans.sum = sum(trans.tot)) %>% # dplyr::select(-p_Val, -pa_Val, -p_fuzzval, -pa_fuzzval) %>% distinct %>%
-
-    # %>%
-    mutate(no.classes = length(unique(mapunit))) %>%
+  aspatial_acc <- full_join(aspatial_mapunit, aspatial_pred, by = c("mapunit1" = ".pred_class")) %>%
+    dplyr::select(mapunit1, trans.tot, pred.tot) %>%
+    dplyr::mutate(across(where(is.numeric), ~ tidyr::replace_na(., 0))) %>%
+    dplyr::mutate(trans.sum = sum(trans.tot)) %>%
+    mutate(no.classes = length(unique(mapunit1))) %>%
     dplyr::mutate(across(where(is.numeric), ~ tidyr::replace_na(., 0))) %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(
-      aspat_p = min((trans.tot / trans.tot), (pred.tot / trans.tot)),
-      aspat_p_wtd = min((trans.tot / trans.sum), (pred.tot / trans.sum))
-    ) %>%
-    #                 aspat_pa = min((trans.tot/trans.tot),(pa_correct/trans.tot)),
-    #                 aspat_pa_wtd= min((trans.tot/trans.sum),(pa_correct/trans.sum))) %>%
+    dplyr::mutate(aspat_p = min((trans.tot / trans.tot), (pred.tot / trans.tot)),
+                  aspat_p_wtd = min((trans.tot / trans.sum), (pred.tot / trans.sum))) %>%
     dplyr::mutate(across(where(is.numeric), ~ replace(., is.nan(.), 0))) %>%
     dplyr::ungroup() %>%
-    dplyr::mutate(
-      aspat_p_theta0 = sum(aspat_p_wtd),
-      aspat_p_theta1 = mean(aspat_p)
-    ) %>%
-    #            aspat_pa_theta0 = sum(aspat_pa_wtd),
-    #           aspat_pa_theta1 = mean(aspat_pa)) %>%
+    dplyr::mutate(aspat_p_theta0 = sum(aspat_p_wtd),
+                  aspat_p_theta1 = mean(aspat_p)) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(aspat_p_theta_wt = theta * (1 / no.classes) + (1 - theta) * (trans.tot / trans.sum)) %>% #
     dplyr::mutate(aspat_p_theta_work = aspat_p_theta_wt * aspat_p_wtd) %>%
@@ -216,15 +221,17 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::select(-aspat_p_theta_wt, -aspat_p_theta_work, -no.classes, -trans.sum, -trans.tot) %>%
     dplyr::ungroup() %>%
     dplyr::distinct()
+
   #### --- primary plus alternate
+
   data_pa <- pdata %>%
     dplyr::mutate_if(is.factor, as.character) %>%
-    dplyr::mutate(mapunit = ifelse(mapunit2 == .pred_class, as.character(mapunit2), as.character(mapunit))) %>%
+    dplyr::mutate(mapunit1 = ifelse(mapunit2 == .pred_class, as.character(mapunit2), as.character(mapunit1))) %>%
     dplyr::mutate_if(is.character, factor)
 
   aspatial_mapunit <- data_pa %>%
-    dplyr::select(mapunit) %>% # %>% group_by(mapunit) %>%
-    dplyr::add_count(mapunit, name = "trans.tot") %>%
+    dplyr::select(mapunit1) %>% # %>% group_by(mapunit) %>%
+    dplyr::add_count(mapunit1, name = "trans.tot") %>%
     dplyr::distinct()
   #
   aspatial_pred <- data_pa %>%
@@ -232,32 +239,20 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::add_count(.pred_class, name = "pred.tot") %>%
     dplyr::distinct()
 
-  aspatial_acc_pa <- left_join(aspatial_mapunit, aspatial_pred, by = c("mapunit" = ".pred_class")) %>%
-    dplyr::select(mapunit, trans.tot, pred.tot) %>% # group_by(mapunit) %>%
-    # mutate(p_correct = sum(p_Val),
-    # pa_correct = sum(pa_Val),
-    # paf_correct = sum(pa_fuzzval)) %>%
-    # ungroup() %>%
-    dplyr::mutate(trans.sum = sum(trans.tot)) %>% # dplyr::select(-p_Val, -pa_Val, -p_fuzzval, -pa_fuzzval) %>% distinct %>%
 
-    # %>%
-    dplyr::mutate(no.classes = length(unique(mapunit))) %>%
+  aspatial_acc_pa <- full_join(aspatial_mapunit, aspatial_pred, by = c("mapunit1" = ".pred_class")) %>%
+    dplyr::select(mapunit1, trans.tot, pred.tot) %>%
+    dplyr::mutate(across(where(is.numeric), ~ tidyr::replace_na(., 0))) %>%
+    dplyr::mutate(trans.sum = sum(trans.tot)) %>%
+    dplyr::mutate(no.classes = length(unique(mapunit1))) %>%
     dplyr::mutate(across(where(is.numeric), ~ tidyr::replace_na(., 0))) %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(
-      aspat_pa = min((trans.tot / trans.tot), (pred.tot / trans.tot)),
-      aspat_pa_wtd = min((trans.tot / trans.sum), (pred.tot / trans.sum))
-    ) %>%
-    #                 aspat_pa = min((trans.tot/trans.tot),(pa_correct/trans.tot)),
-    #                 aspat_pa_wtd= min((trans.tot/trans.sum),(pa_correct/trans.sum))) %>%
+    dplyr::mutate(aspat_pa = min((trans.tot / trans.tot), (pred.tot / trans.tot)),
+                  aspat_pa_wtd = min((trans.tot / trans.sum), (pred.tot / trans.sum))) %>%
     dplyr::mutate(across(where(is.numeric), ~ replace(., is.nan(.), 0))) %>%
     dplyr::ungroup() %>%
-    dplyr::mutate(
-      aspat_pa_theta0 = sum(aspat_pa_wtd),
-      aspat_pa_theta1 = mean(aspat_pa)
-    ) %>%
-    #            aspat_pa_theta0 = sum(aspat_pa_wtd),
-    #           aspat_pa_theta1 = mean(aspat_pa)) %>%
+    dplyr::mutate(aspat_pa_theta0 = sum(aspat_pa_wtd),
+                  aspat_pa_theta1 = mean(aspat_pa)) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(aspat_pa_theta_wt = theta * (1 / no.classes) + (1 - theta) * (trans.tot / trans.sum)) %>% #
     dplyr::mutate(aspat_pa_theta_work = aspat_pa_theta_wt * aspat_pa_wtd) %>%
@@ -269,14 +264,13 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
     distinct() %>%
     dplyr::select(-pred.tot)
 
-  aspatial_acc2 <- dplyr::left_join(aspatial_acc, aspatial_acc_pa, by = "mapunit")
+  aspatial_acc2 <- dplyr::left_join(aspatial_acc, aspatial_acc_pa, by = "mapunit1")
 
+  accuracy_stats <- dplyr::left_join(spatial_acc, aspatial_acc2, by = "mapunit1")
 
-
-  accuracy_stats <- dplyr::left_join(spatial_acc, aspatial_acc2, by = "mapunit")
   ### calculate paf aspatial statistics
   aspat_fpa_df <- accuracy_stats %>%
-    dplyr::select(mapunit, trans.sum, no.classes, trans.tot, pred.tot, spat_p_correct, spat_paf_correct) %>%
+    dplyr::select(mapunit1, trans.sum, no.classes, trans.tot, pred.tot, spat_p_correct, spat_paf_correct) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(
       aspat_paf_min_correct = min(trans.tot, pred.tot),
@@ -300,14 +294,14 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::select(-aspat_paf_theta_wt, -aspat_paf_theta_work) %>%
     dplyr::ungroup() %>%
     dplyr::distinct() %>%
-    dplyr::select(mapunit, aspat_paf_theta0, aspat_paf_theta.5, aspat_paf_theta1)
+    dplyr::select(mapunit1, aspat_paf_theta0, aspat_paf_theta.5, aspat_paf_theta1)
 
-  accuracy_stats <- dplyr::left_join(accuracy_stats, aspat_fpa_df, by = "mapunit") %>%
-    dplyr::select(mapunit, trans.sum, trans.tot, pred.tot, no.classes, everything())
+  accuracy_stats <- dplyr::left_join(accuracy_stats, aspat_fpa_df, by = "mapunit1") %>%
+    dplyr::select(mapunit1, trans.sum, trans.tot, pred.tot, no.classes, everything())
 
   return(accuracy_stats)
 
-  }
+}
 
 # function to calculate the weighted metrics
 
