@@ -69,24 +69,23 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   tdat <- tdat[complete.cases(tdat[, 12:length(tdat)]), ]
   
   # run basic model (no smote and no downsample)
-  #temp fix: 
-  train_data <- tdat %>%
-    filter(slice != 1)
+  
+  train_data <- tdat 
   train_data = as.data.table(train_data)
-  train_data <-  train_data[grep("ICHmc2_", mapunit1), ]
+  #train_data <-  train_data[grep("ICHmc2_", mapunit1), ]
   train_data <- droplevels(train_data)
   
-  baseout <-run_base_model(
+  baseout <- run_base_model(
       train_data,
       fuzz_matrix = fmat,
-      mtry = 14, #mtry
-      min_n = 7, #min_n
+      mtry = mtry,
+      min_n = min_n,
       use.neighbours = TRUE )
   
   write.csv(baseout, file.path(outDir, "acc_base_results.csv"))
   
   # generate model accuracy report
-  model_report(baseout, outDir)
+  model_report(train_data,baseout, outDir)
   
 })
 
