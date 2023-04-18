@@ -9,6 +9,19 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r setup}
+
+devtools::load_all("D:\\PEM_DATA\\PEMprepr")
+devtools::load_all("D:\\PEM_DATA\\PEMsamplr")
+devtools::load_all("D:\\PEM_DATA\\PEMmodelr")
+
+library(PEMprepr)
+library(PEMsamplr)
+library(PEMmodelr)
+library(sf)
+
+```
+
 ## Run models
 
 ```{r cars}
@@ -17,7 +30,7 @@ fid <- setup_folders("CanyonCreek")
 
 in_dir <- fid$model_inputs0310[2]
 
-fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix_basic.csv" ))%>%
+fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix.csv" ))%>%
   dplyr::select(target, Pred, fVal)
 
 # set up tuning (applies to all models)
