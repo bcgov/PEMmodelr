@@ -35,9 +35,9 @@ balance_optimisation_iteration <- function(train_data = train_data,
   # # downsample = TRUE
   #   #mtry = mtry
   #   #min_n = min_n
-  #  ds_iterations <- c(20, 30, 40, 50, 60, 70, 80, 90, 100)
+  ds_iterations <- NA
   #  #10,
-  #  smote_iterations <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+  smote_iterations <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
   #  fuzz_matrix <- fmat
   #  out_dir <- fid$model_inputs0310[2]
   #
@@ -160,7 +160,7 @@ balance_optimisation_iteration <- function(train_data = train_data,
 
      } # end of downsample iteration
 
-   } else if(is.na(smote_iterations)&!is.na(ds_iterations)){
+   } else if(unique(is.na(smote_iterations)&!is.na(ds_iterations))){
      print("downsample only")
 
      for(d in ds_iterations){
@@ -248,7 +248,7 @@ balance_optimisation_iteration <- function(train_data = train_data,
 
      } # end of downsample iteration only loop
 
-   } else if (!is.na(smote_iterations)& is.na(ds_iterations)){
+   } else if (unique(!is.na(smote_iterations)& is.na(ds_iterations))){
      # smote only
      print("smote only")
 
