@@ -99,6 +99,8 @@ optimise_balance <- function(train_data, fuzz_matrix, num_slice = 2, n_iters = 4
      # ref_test <- ref_dat[slice == k & position == "Orig",]
        }
 
+    # need to add the varaible id in here
+
     ref_mod <- ranger::ranger(mapunit1 ~ ., data = ref_train, mtry = mtry,
                       num.trees = 151, min.node.size = min_n, importance = "permutation")
 

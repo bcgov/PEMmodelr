@@ -13,20 +13,28 @@
 #' @examples
 #' run_base_model(train_pts, fuzz_matrix, mtry = 14, min_n = 7, use.neighbours = TRUE)
 
-run_base_model <- function(train_data, fuzz_matrix, mtry = 14, min_n = 7, use.neighbours = TRUE){
+run_base_model <- function(train_data,
+                           fuzz_matrix,
+                           mtry = 14,
+                           min_n = 7,
+                           use.neighbours = TRUE){
 
-  # # testing lines:
-  # train_data = train_data
-  # fuzz_matrix = fmat
-  # mtry = 14
-  # min_n = 7
-  # use.neighbours = TRUE
-  # # end testing lines
+  # # # testing lines:
+  #  train_data = train_data
+  #  fuzz_matrix = fmat
+  #  mtry = mtry
+  #  min_n = min_n
+  #  use.neighbours = TRUE
+  # # # end testing lines
 
   ref_dat <- copy(train_data)
   ref_dat[,mapunit1 := as.factor(mapunit1)]
   ref_dat[,slice := as.factor(slice)]
   print("Training raw data models...")
+
+  munits <- unique(ref_dat$mapunit1)
+  nf_mapunits <- grep(munits, pattern = "_\\d", value = TRUE, invert = TRUE)
+
 
   slices <- unique(ref_dat$slice) %>% droplevels()
 
@@ -47,9 +55,10 @@ run_base_model <- function(train_data, fuzz_matrix, mtry = 14, min_n = 7, use.ne
     }
 
     ref_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
-      #k = levels(slices)[1]
+
+      #k = levels(slices)[4]
       ref_train <- ref_dat[slice != k & position == "Orig",]
-      ref_train[,c("id","tid","mapunit2", "position","slice","transect_id","bgc_cat") := NULL]
+      ref_train[,c("id","mapunit2", "position","slice","transect_id","bgc_cat") := NULL]
       low_units <- ref_train[,.(NumUnit = .N), by = .(mapunit1)][NumUnit < 10,]
       ref_train <- ref_train[!mapunit1 %in% low_units$mapunit1,]
 
@@ -59,12 +68,33 @@ run_base_model <- function(train_data, fuzz_matrix, mtry = 14, min_n = 7, use.ne
         ref_test <- ref_dat[slice == k & !mapunit1 %in% low_units$mapunit1 & position == "Orig",]
       }
 
-      ref_mod <- ranger::ranger(mapunit1 ~ ., data = ref_train, mtry = mtry,
-                                num.trees = 151, min.node.size = min_n, importance = "permutation")
+      null_recipe <-  recipes::recipe(mapunit1 ~ ., data = ref_train) %>%
+        recipes::update_role(tid, new_role = "id variable")
+
+      randf_spec <- parsnip::rand_forest(mtry = mtry, min_n = min_n, trees = 151) %>%
+        parsnip::set_mode("classification") %>%
+        parsnip::set_engine("ranger", importance = "permutation", verbose = FALSE)
+
+      pem_workflow <- workflows::workflow() %>%
+        workflows::add_recipe(null_recipe) %>%
+        workflows::add_model(randf_spec)
+
+      ref_mod <- parsnip::fit(pem_workflow, ref_train)
+
+      final_fit <- tune::extract_fit_parsnip(ref_mod)
+
+      oob  <- round(ref_mod$fit$fit$fit$prediction.error, 3)
 
       preds <- predict(ref_mod, ref_test)
       pred_all <- cbind(ref_test[,.(id, mapunit1, mapunit2, slice)],
-                        .pred_class = preds$predictions)
+                        .pred_class = preds$.pred_class)
+
+      # switch out the predicted Nf units for "nonfor" catergory.
+      pred_all <- pred_all %>%
+        mutate(mapunit1 = ifelse(mapunit1  %in% nf_mapunits, "nonfor", mapunit1 ),
+               mapunit2 = ifelse(mapunit2 %in% nf_mapunits, "nonfor", mapunit2) ,
+               .pred_class = ifelse(.pred_class  %in% nf_mapunits, "nonfor", .pred_class ))
+
       pred_all$mapunit1 <- as.factor(pred_all$mapunit1)
       pred_all$.pred_class <- factor(pred_all$.pred_class,
                                      levels = levels(pred_all$mapunit1))
