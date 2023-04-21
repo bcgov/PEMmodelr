@@ -101,7 +101,7 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 
 
 
-# Alternatively Run the balance optimised version 
+#  Run the balance optimised version 
 
 ```{r}
 # # # data lines
@@ -140,9 +140,8 @@ getBestPars(opt_res, N = 5)
 ```
 
 
+# Alternatively Run the balance optimised version - old version iterate through all combinations 
 
-
-# Alternatively Run the balance optimised version - old version
 ```{r}
 
 bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
@@ -166,25 +165,22 @@ bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   train_data = as.data.table(train_data)
   train_data <- droplevels(train_data)
   
-  
   balance_optimisation_iteration(
-    train_data,
+      train_data,
       fuzz_matrix = fmat,
-      mtry = mtry,
-      min_n = min_n,
-      use.neighbours = TRUE 
+      ds_iterations = ds_iterations,
+      smote_iterations = smote_iterations,
+      #mtry = mtry,
+      #min_n = min_n,
+      use.neighbours = TRUE,
+      out_dir = outDir
   )
-  
-
-  write.csv(baseout, file.path(outDir, "balance_opt_results.csv"))
-  
-  # generate model accuracy report
-  #model_report(train_data,baseout, outDir)
   
 })
 
 
 ```
+
 
 # consolidate all balancing options and find optimum
 
@@ -192,7 +188,40 @@ bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 
 ```{r consolidate acc outputs and graph, echo = FALSE, fig.width=8, fig.height=8}
 
-# 1) Optimizing for MAP - UNIT Accuracy
+
+best_balance <- lapply(names(bgc_pts_subzone), function(xx) {
+  
+  xx <- names(bgc_pts_subzone[1])
+  
+  outDir = file.path(fid$model_draft[2], xx, "balance")
+  
+ #acc_summary <- function(outDir){
+    data_list <- list.files(file.path(outDir), full.names = TRUE, pattern = "acc_", recursive = TRUE)
+    
+    aresults <- foreach(k = data_list) %do% {
+      #k = data_list[5]
+      #print(k)
+      temp <- read.csv(k)
+      temp <- temp %>% dplyr::mutate(filename = paste(basename(k)))
+      temp
+    }
+    
+    acc_total <- as.data.frame(rbindlist(aresults, fill = TRUE)) %>%
+      rowwise() %>%
+      mutate(bgc = unlist(strsplit(mapunit2, "_"))[1])%>%
+      ungroup()
+    
+    acc_total$bgc = bgcname
+    return(acc_total)
+  } 
+  
+  
+  
+  
+
+
+
+
 
 # consolidate outputs for each balancing method
 out_dir <- file.path("../PEM_standards_manuscripts/models")

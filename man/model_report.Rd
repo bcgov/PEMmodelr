@@ -4,7 +4,7 @@
 \alias{model_report}
 \title{Generate Model summary}
 \usage{
-model_report(acc_output, out_dir)
+model_report(trDat, acc_output, out_dir)
 }
 \arguments{
 \item{acc_output}{training points cleaned}
