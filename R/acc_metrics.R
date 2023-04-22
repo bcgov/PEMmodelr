@@ -28,23 +28,24 @@
 
 acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
 
-  ##1.  Selects max value between primary and secondary calls
-  #pred_data = pred_all
-  #fuzzmatrx = fuzz_matrix
-  #theta = 0.5
-  # end testing line
+  # ##1.  Selects max value between primary and secondary calls
+  # pred_data = pred_all
+  # fuzzmatrx = fuzz_matrix
+  # theta = 0.5
+  # # end testing line
 
   preds = c("id","mapunit1", "mapunit2", ".pred_class")
   pred_data <- pred_data %>% dplyr::select(any_of(preds))
+ # pred_data = replace(pred_data, is.na(pred_data), 0)
 
   data1 <- dplyr::left_join(pred_data, fuzzmatrx, by = c("mapunit1" = "target", ".pred_class" = "Pred")) %>%
-    replace(is.na(.), 0) %>%
     dplyr::mutate_if(is.character, as.factor) %>%
+    dplyr::mutate(fVal = ifelse(is.na(fVal), 0, fVal)) %>%
     dplyr::rename("p_fuzzval" = fVal)
 
   data2 <- dplyr::left_join(data1, fuzzmatrx, by = c("mapunit2" = "target", ".pred_class" = "Pred")) %>%
     dplyr::mutate_if(is.character, as.factor) %>%
-    replace(is.na(.), 0) %>%
+    dplyr::mutate(fVal = ifelse(is.na(fVal), 0, fVal)) %>%# replace(is.na(data1$fVal), 0) %>%
     dplyr::rename("alt_fuzzval" = fVal)
 
 
@@ -64,6 +65,8 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
       p_Val = ifelse(mapunit1 == .pred_class, 1, 0),
       alt_Val = ifelse(mapunit2 == .pred_class, 1, 0)
     ) %>%
+    dplyr::mutate(
+      alt_Val = ifelse(is.na(alt_Val), 0, alt_Val))%>%
     dplyr::rowwise() %>%
     dplyr::mutate(pa_Val = max(p_Val, alt_Val)) %>%
     dplyr::select(-alt_Val) %>%
