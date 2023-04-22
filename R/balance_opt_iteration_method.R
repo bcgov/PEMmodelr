@@ -28,20 +28,15 @@ balance_optimisation_iteration <- function(train_data = train_data,
                                  #smote_iterations = smote_iterations,
                                  #use.neighbours = TRUE) {
 
-  # # testing lines
+  # # # testing lines
   # train_data =train_data
-  #
-  # # extrarun = FALSE
-  # # extradat = NULL
-  # # downsample = TRUE
-  #   #mtry = mtry
-  #   #min_n = min_n
-  #ds_iterations <- NA
-  #  #10,
-  #smote_iterations <- c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
-  #  fuzz_matrix <- fmat
-  #  out_dir <- fid$model_inputs0310[2]
-  #
+  # mtry = mtry
+  # min_n = min_n
+  # ds_iterations <- 0.5
+  # smote_iterations <- NA #c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+  # fuzz_matrix <- fmat
+  # out_dir <- fid$model_inputs0310[2]
+  # #
 
   # create a subfolder to store all balance outputs:
 
@@ -53,7 +48,7 @@ balance_optimisation_iteration <- function(train_data = train_data,
      print("downsample and smote")
 
       for(d in ds_iterations){
-       # d = ds_iterations[1]
+        #d = ds_iterations[1]
        print(d)
 
        for(i in smote_iterations){
@@ -71,6 +66,9 @@ balance_optimisation_iteration <- function(train_data = train_data,
          ref_dat[,mapunit1 := as.factor(mapunit1)]
          ref_dat[,slice := as.factor(slice)]
          print("Training raw data models...")
+
+         munits <- unique(ref_dat$mapunit1)
+         nf_mapunits <- grep(munits, pattern = "_\\d", value = TRUE, invert = TRUE)
 
          slices <- unique(ref_dat$slice) %>% droplevels()
 
@@ -123,23 +121,21 @@ balance_optimisation_iteration <- function(train_data = train_data,
 
              oob  <- round(ref_mod$fit$fit$fit$prediction.error, 3)
 
-             #
-             # # DOES THIS NEED TO BE ADDED IN ALL THE MODEL BUILDS?
-             # # switch out the predicted Nf units for "nonfor" catergory.
-             # test.pred <- test.pred %>%
-             #   mutate(target = ifelse(as.character(target) %in% nf_mapunits, "nonfor", as.character(target)),
-             #          target2 = ifelse(as.character(target2) %in% nf_mapunits, "nonfor", as.character(target2)) ,
-             #          .pred_class = ifelse(as.character(.pred_class)  %in% nf_mapunits, "nonfor", as.character(.pred_class)))
-             #
-             # test.pred <- test.pred %>%  mutate_if(is.character, as.factor)
-             #
-
              preds <- predict(ref_mod, ref_test)
              pred_all <- cbind(ref_test[,.(id, mapunit1, mapunit2, slice)],
                                .pred_class = preds$.pred_class)
+
+             pred_all <- pred_all %>% mutate(mapunit1 = as.character(mapunit1),
+                                             mapunit2 = as.character(mapunit2),
+                                             .pred_class = as.character(.pred_class))
+
+             pred_all <- pred_all %>%
+               dplyr::mutate(mapunit1 = ifelse(mapunit1  %in% nf_mapunits, "nonfor", mapunit1 ),
+                             mapunit2 = ifelse(mapunit2 %in% nf_mapunits, "nonfor", mapunit2) ,
+                             .pred_class = ifelse(.pred_class  %in% nf_mapunits, "nonfor", .pred_class ))
+
              pred_all$mapunit1 <- as.factor(pred_all$mapunit1)
-             pred_all$.pred_class <- factor(pred_all$.pred_class,
-                                            levels = levels(pred_all$mapunit1))
+             pred_all$mapunit2 <- as.factor(pred_all$mapunit2)
 
              print(paste0("generating accuracy metrics for slice:",k))
 
@@ -160,10 +156,8 @@ balance_optimisation_iteration <- function(train_data = train_data,
      print("downsample only")
 
      for(d in ds_iterations){
-       #d = ds_iterations[3]
+       #d = ds_iterations[1]
        print(d)
-
-       # test if enough data in the slice to use smoting
        # set up the parameters for balancing
        downsample_ratio = d  # (0 - 100, Null = 1)
        balance_name = paste0("ds_",downsample_ratio)
@@ -174,11 +168,14 @@ balance_optimisation_iteration <- function(train_data = train_data,
        ref_dat[,slice := as.factor(slice)]
        print("Training raw data models...")
 
+       munits <- unique(ref_dat$mapunit1)
+       nf_mapunits <- grep(munits, pattern = "_\\d", value = TRUE, invert = TRUE)
+
        slices <- unique(ref_dat$slice) %>% droplevels()
 
        ref_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
 
-         #k = levels(slices)[1]
+        # k = levels(slices)[5]
          label = paste(d, k, sep = "-")
          print(label)
 
@@ -192,8 +189,6 @@ balance_optimisation_iteration <- function(train_data = train_data,
          }else{
            ref_test <- ref_dat[slice == k & !mapunit1 %in% low_units$mapunit1 & position == "Orig",]
          }
-
-         # Q for will do we need to include an id variable here?
 
          null_recipe <-  recipe(mapunit1 ~ ., data = ref_train) %>%
            update_role(tid, new_role = "id variable") %>%
@@ -223,9 +218,20 @@ balance_optimisation_iteration <- function(train_data = train_data,
            preds <- predict(ref_mod, ref_test)
            pred_all <- cbind(ref_test[,.(id, mapunit1, mapunit2, slice)],
                              .pred_class = preds$.pred_class)
+
+           pred_all <- pred_all %>% mutate(mapunit1 = as.character(mapunit1),
+                                          mapunit2 = as.character(mapunit2),
+                                          .pred_class = as.character(.pred_class))
+
+           pred_all <- pred_all %>%
+             dplyr::mutate(mapunit1 = ifelse(mapunit1  %in% nf_mapunits, "nonfor", mapunit1 ),
+                    mapunit2 = ifelse(mapunit2 %in% nf_mapunits, "nonfor", mapunit2) ,
+                    .pred_class = ifelse(.pred_class  %in% nf_mapunits, "nonfor", .pred_class ))
+
            pred_all$mapunit1 <- as.factor(pred_all$mapunit1)
-           pred_all$.pred_class <- factor(pred_all$.pred_class,
-                                          levels = levels(pred_all$mapunit1))
+           pred_all$mapunit2 <- as.factor(pred_all$mapunit2)
+           #pred_all$.pred_class <- factor(pred_all$.pred_class,
+           #                                levels = levels(pred_all$mapunit1))
 
            print(paste0("generating accuracy metrics for slice:",k))
 
@@ -261,6 +267,9 @@ balance_optimisation_iteration <- function(train_data = train_data,
          ref_dat[,mapunit1 := as.factor(mapunit1)]
          ref_dat[,slice := as.factor(slice)]
          print("Training raw data models...")
+
+         munits <- unique(ref_dat$mapunit1)
+         nf_mapunits <- grep(munits, pattern = "_\\d", value = TRUE, invert = TRUE)
 
          slices <- unique(ref_dat$slice) %>% droplevels()
 
@@ -314,9 +323,19 @@ balance_optimisation_iteration <- function(train_data = train_data,
              preds <- predict(ref_mod, ref_test)
              pred_all <- cbind(ref_test[,.(id, mapunit1, mapunit2, slice)],
                                .pred_class = preds$.pred_class)
+
+
+             pred_all <- pred_all %>% mutate(mapunit1 = as.character(mapunit1),
+                                             mapunit2 = as.character(mapunit2),
+                                             .pred_class = as.character(.pred_class))
+
+             pred_all <- pred_all %>%
+               dplyr::mutate(mapunit1 = ifelse(mapunit1  %in% nf_mapunits, "nonfor", mapunit1 ),
+                             mapunit2 = ifelse(mapunit2 %in% nf_mapunits, "nonfor", mapunit2) ,
+                             .pred_class = ifelse(.pred_class  %in% nf_mapunits, "nonfor", .pred_class ))
+
              pred_all$mapunit1 <- as.factor(pred_all$mapunit1)
-             pred_all$.pred_class <- factor(pred_all$.pred_class,
-                                            levels = levels(pred_all$mapunit1))
+             pred_all$mapunit2 <- as.factor(pred_all$mapunit2)
 
              print(paste0("generating accuracy metrics for slice:",k))
 
