@@ -69,15 +69,6 @@ trDat <- cleandat %>%
   mutate(mapunit1 = factor(mapunit1)) %>%  
   droplevels()
    
-# # temp subsample to get it working
-# mu <- c("ICHmc1_01", "ICHmc1_01a" ,  "ICHmc1_01b" ,  "ICHmc1_03",   "ICHmc1_04" ,"ICHmc1_05"  ,  "ICHmc1_06" , "ICHmc1a_01b" ,  "ICHmc2_01a", "ICHmc2_01b",   "ICHmc2_02" ,   "ICHmc2_03" ,   "ICHmc2_04" ,   "ICHmc2_05")
-# 
-# trDat1 <- trDat %>%
-#  filter(mapunit1 %in% mu)%>%
-#   droplevels()
-# 
-# trDat = trDat1
-
 # tune the parameters
 tune_res <- tune_rf(trDat, output = 'full')
 
