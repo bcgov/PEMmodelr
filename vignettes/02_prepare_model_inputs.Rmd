@@ -108,11 +108,21 @@ cleandat <- read.csv(file.path(fid$model_inputs0310[2], "training_pts.csv")) %>%
 
 zones <- c(as.character(unique(cleandat$bgc_cat)))
 
-bgc_pts_subzone <- lapply(zones, function (i){ # i =  zones[1]  
+bgc_pts_subzone <- lapply(zones, function (i){ 
+   #i =  zones[2]  
   pts_subzone <- cleandat %>%
         dplyr::filter(stringr::str_detect(tid, as.character(paste0(tolower(i), "_")))) %>% 
         droplevels()
-      
+  
+  # remove any bec sites series that are not in the bec_zone catergory 
+  
+  munits <- grep(unique(pts_subzone$mapunit1), pattern = "_\\d",value = TRUE, invert = FALSE)
+
+  diff_bec_mapunits <- grep(munits,pattern = paste0("^",i,"_"), value = TRUE , invert =TRUE) 
+  
+  pts_subzone <- pts_subzone %>%
+        dplyr::filter(!mapunit1 %in% diff_bec_mapunits)
+
     if(nrow(pts_subzone) == 0){ pts_subzone = NULL} else {ppts_subzone = pts_subzone }
       pts_subzone
   })
