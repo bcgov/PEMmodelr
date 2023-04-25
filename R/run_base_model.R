@@ -20,11 +20,11 @@ run_base_model <- function(train_data,
                            use.neighbours = TRUE){
 
   # # # testing lines:
-  #  train_data = train_data
-  #  fuzz_matrix = fmat
-  #  mtry = mtry
-  #  min_n = min_n
-  #  use.neighbours = TRUE
+   # train_data = train_data
+   # fuzz_matrix = fmat
+   # mtry = mtry
+   # min_n = min_n
+   # use.neighbours = TRUE
   # # # end testing lines
 
   ref_dat <- copy(train_data)
@@ -34,7 +34,6 @@ run_base_model <- function(train_data,
 
   munits <- unique(ref_dat$mapunit1)
   nf_mapunits <- grep(munits, pattern = "_\\d", value = TRUE, invert = TRUE)
-
 
   slices <- unique(ref_dat$slice) %>% droplevels()
 
@@ -56,7 +55,7 @@ run_base_model <- function(train_data,
 
     ref_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
 
-      #k = levels(slices)[4]
+      #k = levels(slices)[1]
       ref_train <- ref_dat[slice != k & position == "Orig",]
       ref_train[,c("id","mapunit2", "position","slice","transect_id","bgc_cat") := NULL]
       low_units <- ref_train[,.(NumUnit = .N), by = .(mapunit1)][NumUnit < 10,]
@@ -89,6 +88,10 @@ run_base_model <- function(train_data,
       pred_all <- cbind(ref_test[,.(id, mapunit1, mapunit2, slice)],
                         .pred_class = preds$.pred_class)
 
+      pred_all <- pred_all %>% mutate(mapunit1 = as.character(mapunit1),
+                                      mapunit2 = as.character(mapunit2),
+                                      .pred_class = as.character(.pred_class))
+
       # switch out the predicted Nf units for "nonfor" catergory.
       pred_all <- pred_all %>%
         mutate(mapunit1 = ifelse(mapunit1  %in% nf_mapunits, "nonfor", mapunit1 ),
@@ -96,8 +99,7 @@ run_base_model <- function(train_data,
                .pred_class = ifelse(.pred_class  %in% nf_mapunits, "nonfor", .pred_class ))
 
       pred_all$mapunit1 <- as.factor(pred_all$mapunit1)
-      pred_all$.pred_class <- factor(pred_all$.pred_class,
-                                     levels = levels(pred_all$mapunit1))
+      pred_all$mapunit2 <- as.factor(pred_all$mapunit2)
 
       print(paste0("generating accuracy metrics for slice:",k))
 
