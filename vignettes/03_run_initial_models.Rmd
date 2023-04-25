@@ -55,7 +55,7 @@ Alternatively you can run a balance optimize option (see below)
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-  xx <- names(bgc_pts_subzone[1])
+  #xx <- names(bgc_pts_subzone[1])
   
   alldat = bgc_pts_subzone[[xx]]
   
@@ -169,7 +169,7 @@ bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
       train_data,
       fuzz_matrix = fmat,
       ds_iterations = NA,#c(10,20,30,40,50,60,70,80,90),
-      smote_iterations = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9),
+      smote_iterations = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,0.8, 0.9),
       mtry = mtry,
       min_n = min_n,
       use.neighbours = TRUE,
