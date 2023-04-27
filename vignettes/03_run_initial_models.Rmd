@@ -101,7 +101,7 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 
 
 
-#  Run the balance optimised version 
+#  Run the balance optimised version (baysian version)
 
 ```{r}
 # # # data lines
@@ -179,93 +179,98 @@ bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 })
 
 
+
 ```
 
 
-# consolidate all balancing options and find optimum
+# Consolidate all balancing options and find optimum
 
 # 1) Optimizing for MAP - UNIT Accuracy
 
 ```{r consolidate acc outputs and graph, echo = FALSE, fig.width=8, fig.height=8}
 
+# combine all balance options into a single data table
 
-best_balance <- lapply(names(bgc_pts_subzone), function(xx){
-  
-  xx <- names(bgc_pts_subzone[1])
-  
-  outDir = file.path(fid$model_draft[2], xx, "balance")
-  
- #acc_summary <- function(outDir){
-    data_list <- list.files(file.path(outDir), full.names = TRUE, pattern = "acc_", recursive = TRUE)
-    
-    aresults <- foreach(k = data_list) %do% {
-      #k = data_list[5]
-      #print(k)
-      temp <- read.csv(k)
-      temp <- temp %>% dplyr::mutate(filename = paste(basename(k)))
-      temp
-    }
-    
-    acc_total <- as.data.frame(rbindlist(aresults, fill = TRUE)) %>%
-      rowwise() %>%
-      mutate(bgc = unlist(strsplit(mapunit2, "_"))[1])%>%
-      ungroup()
-    
-    acc_total$bgc = bgcname
-    return(acc_total)
-  } 
-  
-  
-  
-  
+ acc_total <- foreach::foreach(xx = names(bgc_pts_subzone), .errorhandling = "pass",.combine = rbind) %do% {
+    #k = data_list[2]
+    # print(k)
+     outDir = file.path(fid$model_draft[2], xx)
+  allacc <- combine_balance_ouputs(outDir)
+  allacc <- allacc %>% dplyr::mutate(bgc = xx)
 
-
-
+  }
 
 
 # consolidate outputs for each balancing method
 out_dir <- file.path("../PEM_standards_manuscripts/models")
 #out_dir <- file.path(out_dir, mname) 
-balance = "noextra_balancing"
-#balance = "extrapts_balancing"
 
-acc_summary <- function(outdir, bgcname = "BGC"){
-data_list <- list.files(file.path(outdir), full.names = TRUE, pattern = "acc_", recursive = TRUE)
-  aresults <- foreach(k = data_list) %do% {
-     #k = data_list[5]
-    print(k)
-    temp <- read.csv(k)
-    temp <- temp %>% dplyr::mutate(filename = paste(basename(k)))
-    temp
-}
 
-acc_total <- as.data.frame(rbindlist(aresults, fill = TRUE)) %>%
-  rowwise() %>%
-  mutate(bgc = unlist(strsplit(target, "_"))[1])%>%
-  ungroup()
+# for each bgc: 
+bgcs <- unique(as.factor(acc_total$bgc)) %>% droplevels()
 
-acc_total$bgc = bgcname
-return(acc_total)
-} 
-
- out_dir2 =  file.path(paste(out_dir, mname,"ESSFmc", balance,   sep = "/"))
-acc_total1 <- acc_summary(outdir = out_dir2, "ESSFmc")
-
- out_dir2 =  file.path(paste(out_dir, mname,"ESSFmcw", balance,   sep = "/"))
- acc_total2 <- acc_summary(out_dir2, "ESSFmcw")
-
- out_dir2 =  file.path(paste(out_dir, mname, "SBSmc2", balance,   sep = "/")) 
- acc_total3 <- acc_summary(out_dir2, "SBSmc2")
+best_results <- foreach(b = levels(bgcs), .combine=rbind) %do% {
+  
+  b <- bgcs[1]
+  
+  acc_bgc <- acc_total %>% dplyr::filter(bgc %in% b)
  
- #  out_dir2 =  file.path(paste(out_dir, "ICHmc2", balance,   sep = "/")) 
- # acc_total<- acc_summary(outDir, "ICHmc2")
- 
-acc_total <- rbind(acc_total1, acc_total2, acc_total3)
-acc_total_MU <- acc_total %>% 
+  best_balance <- acc_bgc %>%
     group_by(bgc, balance) %>%
-    dplyr::select(bgc, balance, aspat_paf_theta0,  aspat_paf_theta.5,  aspat_paf_theta1,  spat_paf_theta0,  spat_paf_theta.5,  spat_paf_theta1 ) %>% distinct() %>%
-  dplyr::summarise(across(where(is.numeric), mean)) %>% 
-  filter(bgc == "ESSFmc")
+    dplyr::select(balance, bgc, aspat_paf_theta1, aspat_paf_theta.5, aspat_paf_theta0, spat_paf_theta1,  spat_paf_theta.5, spat_paf_theta0 ) %>% distinct() %>%
+    dplyr::summarise(across(where(is.numeric), mean)) %>%
+    ungroup()
+ 
+  
+library(dplyr)
+library(tidyr)
+  
+
+raw <- best_balance %>% 
+  filter(balance == "acc_base_results") %>%
+  select(-balance)
+  
+long_raw <- raw %>%
+  select(-bgc) %>%
+  gather(key = "column", value = "value_1")
+
+long_bal <- best_balance %>%
+  select(-bgc) %>%
+  gather(key = "column", value = "value_2", -balance)
+
+
+best_balance_difference <- long_bal %>%
+  inner_join(long_raw, by = "column") %>%
+  mutate(value = '-'(value_2, value_1)) %>%
+  select(balance, column, value) %>%
+  spread(key = "column", value = "value")
+  
+best_balance_difference <- best_balance_difference %>%
+  rowwise() %>%
+  dplyr::mutate(allsum = sum(c_across("aspat_paf_theta.5":"spat_paf_theta1")),
+                aspatial_sum = (aspat_paf_theta0 +  aspat_paf_theta.5 +  aspat_paf_theta1)/3,
+                spatial_sum = (spat_paf_theta0 +  spat_paf_theta.5 +  spat_paf_theta1)/3)
+
+
+
+
+
+  i = max(best_balance_difference$allsum)
+  
+  best_balance_difference$max = NA
+  
+  best_overall <- best_balance_difference[which(best_balance_difference$allsum == i),] %>% mutate(maxmetric = "best_overall") %>% 
+    dplyr::select(balance,  maxmetric, max, allsum)
+ 
+
+best_balance_as <- best_balance %>%
+  group_by(balance)%>%
+  distinct() %>%
+  dplyr::summarise(across(where(is.numeric), mean)) %>%
+  rowwise()%>%
+  mutate(aspatial_sum = (aspat_paf_theta0 +  aspat_paf_theta.5 +  aspat_paf_theta1)/3,
+           spatial_sum = ( spat_paf_theta0 +  spat_paf_theta.5 +  spat_paf_theta1)/3)
+
 
 ```
 
@@ -277,16 +282,7 @@ acc_total_MU <- acc_total %>%
   bgcs <- unique(as.factor(acc_total$bgc)) %>% droplevels()
   # bgcs = "ESSFmcw"
   # k=1
- best_results <- foreach(k = levels(bgcs), .combine=rbind) %do% {
 
- #k = "ESSFmcw"
-           acc_bgc <- acc_total %>% dplyr::filter(bgc %in% k) 
-
-
-best_balance <- acc_bgc %>%
-  group_by(bgc, balance) %>%
-  dplyr::select(balance, bgc, aspat_paf_theta1, aspat_paf_theta.5, aspat_paf_theta0, spat_paf_theta1,  spat_paf_theta.5, spat_paf_theta0 ) %>% distinct() %>%
-  dplyr::summarise(across(where(is.numeric), mean))
 balance_ID <- best_balance[,c(1:2)] %>% data.frame
 reps <- nrow(best_balance)
 
