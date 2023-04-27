@@ -55,7 +55,7 @@ Alternatively you can run a balance optimize option (see below)
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-  #xx <- names(bgc_pts_subzone[1])
+  xx <- names(bgc_pts_subzone[2])
   
   alldat = bgc_pts_subzone[[xx]]
   
@@ -200,30 +200,21 @@ bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 
   }
 
-
-# consolidate outputs for each balancing method
-out_dir <- file.path("../PEM_standards_manuscripts/models")
-#out_dir <- file.path(out_dir, mname) 
+# 
+# # consolidate outputs for each balancing method
+# out_dir <- file.path("../PEM_standards_manuscripts/models")
+# #out_dir <- file.path(out_dir, mname) 
 
 
 # for each bgc: 
 bgcs <- unique(as.factor(acc_total$bgc)) %>% droplevels()
 
-best_results <- foreach(b = levels(bgcs), .combine=rbind) %do% {
+  best_results <- foreach(b = levels(bgcs), .combine=rbind) %do% {
   
   b <- bgcs[1]
   
   acc_bgc <- acc_total %>% dplyr::filter(bgc %in% b)
  
-  best_balance <- acc_bgc %>%
-    group_by(bgc, balance) %>%
-    dplyr::select(balance, bgc, aspat_paf_theta1, aspat_paf_theta.5, aspat_paf_theta0, spat_paf_theta1,  spat_paf_theta.5, spat_paf_theta0 ) %>% distinct() %>%
-    dplyr::summarise(across(where(is.numeric), mean)) %>%
-    ungroup()
- 
-  
-library(dplyr)
-library(tidyr)
   
 
 raw <- best_balance %>% 
