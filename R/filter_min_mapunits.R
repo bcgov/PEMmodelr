@@ -3,7 +3,7 @@
 #' @param tpts training data points set
 #' @param min_no minimum no of mapunit points (based on Origin position )
 #' @import dplyr
-#' @import magrittr
+#' @importFrom magrittr "%>%"
 #' @return dataframe with the filtered mapunits removed
 #' @export
 #'
