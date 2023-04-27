@@ -2,6 +2,7 @@
 
 export(acc_metrics)
 export(balance_optimisation_iteration)
+export(combine_balance_ouputs)
 export(compare_hypercubes)
 export(define_mapunits)
 export(filter_min_mapunits)
