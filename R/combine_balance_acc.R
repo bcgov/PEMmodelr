@@ -10,7 +10,7 @@
 #' @examples
 #' combine_balance_outputs(bal_dir = file.path(fid$model_draft[2], "ESSFmc"))
 
-combine_balance_ouputs<- function(bal_dir){
+combine_balance_ouputs <- function(bal_dir){
   # testing
   #outDir = file.path(fid$model_draft[2], xx)
   #  end testing
@@ -43,13 +43,12 @@ combine_balance_ouputs<- function(bal_dir){
 select_best_acc <- function(aresults){
 
   # testing
-  #aresults <- acc_bgc
+  aresults <- acc_bgc
   # end testing
-
 
   # get best output
   best_balance <- aresults %>%
-    dplyrr::group_by(balance) %>%
+    dplyr::group_by(balance) %>%
     dplyr::select(balance,aspat_paf_theta1, aspat_paf_theta.5, aspat_paf_theta0, spat_paf_theta1,  spat_paf_theta.5, spat_paf_theta0 ) %>% distinct() %>%
     dplyr::summarise(across(where(is.numeric), mean)) %>%
     ungroup()
@@ -66,39 +65,39 @@ select_best_acc <- function(aresults){
   long_bal <- best_balance %>% dplyr::gather(key = "column", value = "value_2", -balance)
 
   best_balance_difference_all <- long_bal %>%
-    inner_join(long_raw, by = "column")
+    dplyr::inner_join(long_raw, by = "column")
 
 
   # calculate best overall metric
   best_overall <- best_balance_difference_all %>%
-    mutate(dif = '-'(value_2, value_1)) %>%
-    select(balance, column, dif) %>%
-    spread(key = "column", value = "dif") %>%
-    rowwise() %>%
+    dplyr::mutate(dif = '-'(value_2, value_1)) %>%
+    dplyr::select(balance, column, dif) %>%
+    dplyr::spread(key = "column", value = "dif") %>%
+    dplyr::rowwise() %>%
     dplyr::mutate(allsum = sum(c_across("aspat_paf_theta.5":"spat_paf_theta1")))
 
   # select best overall model
   max_overall <- best_overall[which.max(best_overall$allsum),'balance']
 
   max_raw_overall <- best_balance %>%
-    filter(balance %in% c(max_overall,"acc_base_results" ))%>%
-    rowwise() %>%
+    dplyr::filter(balance %in% c(max_overall,"acc_base_results" ))%>%
+    dplyr::rowwise() %>%
     dplyr::mutate(allsum = sum(c_across("aspat_paf_theta.5":"spat_paf_theta1"))) %>%
-    select(balance, allsum)
+    dplyr::select(balance, allsum)
 
   max_overall <- best_balance %>%
-    filter(balance %in% max_overall) %>%
-    rowwise() %>%
+    dplyr::filter(balance %in% max_overall) %>%
+    dplyr::rowwise() %>%
     dplyr::mutate(value_2 = sum(c_across("aspat_paf_theta.5":"spat_paf_theta1"))) %>%
-    select(balance, value_2) %>%
-    mutate(column = "overall")
+    dplyr::select(balance, value_2) %>%
+    dplyr::mutate(column = "overall")
 
   raw_overall <- best_balance %>%
-    filter(balance == "acc_base_results") %>%
-    rowwise() %>%
+    dplyr::filter(balance == "acc_base_results") %>%
+    dplyr::rowwise() %>%
     dplyr::mutate(value_1 = sum(c_across("aspat_paf_theta.5":"spat_paf_theta1"))) %>%
-    select(value_1) %>%
-    mutate(column = "overall")
+    dplyr::select(value_1) %>%
+    dplyr::mutate(column = "overall")
 
   max_raw_overall <- left_join(max_overall, raw_overall)
 
@@ -106,36 +105,35 @@ select_best_acc <- function(aresults){
   # 2) select best based on aspat and spat values
 
    best_balance_as <- best_balance  %>%
-     rowwise()%>%
-     mutate(aspatial_sum = (aspat_paf_theta0 +  aspat_paf_theta.5 +  aspat_paf_theta1)/3,
+     dplyr::rowwise()%>%
+     dplyr::mutate(aspatial_sum = (aspat_paf_theta0 +  aspat_paf_theta.5 +  aspat_paf_theta1)/3,
             spatial_sum = ( spat_paf_theta0 +  spat_paf_theta.5 +  spat_paf_theta1)/3)
 
    # compare these to raw values (here)
    raw_best_balance <-  best_balance_as %>%
-     filter(balance == "acc_base_results") %>%
-     select(aspatial_sum, spatial_sum) %>%
-     gather(key = "column", value = "value_1") %>%
+     dplyr::filter(balance == "acc_base_results") %>%
+     dplyr::select(aspatial_sum, spatial_sum) %>%
+     dplyr::gather(key = "column", value = "value_1") %>%
      rbind(long_raw)
 
 
    best_balance_as <- best_balance_as %>%
-     gather(key = "column", value = "value_2", -balance) %>%
-     group_by(column)%>%
-     slice(which.max(value_2))
+     dplyr::gather(key = "column", value = "value_2", -balance) %>%
+     dplyr::group_by(column)%>%
+     dplyr::slice(which.max(value_2))
 
 
    # check the difference between raw and best
 
    best_metrics <- best_balance_as %>%
-     full_join(raw_best_balance , by = "column") %>%
+     dplyr::full_join(raw_best_balance , by = "column") %>%
      rbind(max_raw_overall) %>%
-     rowwise() %>%
-     mutate(pcdelta = round((value_2 - value_1) *100,1))%>%
-     rename("maxmetric" = column,
+     dplyr::rowwise() %>%
+     dplyr:: mutate(pcdelta = round((value_2 - value_1) *100,1))%>%
+     dplyr::rename("maxmetric" = column,
             "max" = value_2,
             "raw" = value_1) %>%
-     mutate(balance = stringr::str_replace_all(balance, "acc_","")) #%>%
-     #mutate(balance = stringr::str_replace_all(balance, "_", " "))
+     dplyr::mutate(balance = stringr::str_replace_all(balance, "acc_","")) #%>%
 
    return(best_metrics)
 
