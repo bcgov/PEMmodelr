@@ -34,7 +34,7 @@ fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix.csv" ))%>%
   dplyr::select(target, Pred, fVal)
 
 # set up tuning (applies to all models)
-best_tune <- fread(file.path (in_dir, "best_tuning.csv"))
+best_tune <- fread(file.path(in_dir, "best_tuning.csv"))
 mtry <- best_tune$mtry
 min_n <- best_tune$min_n
 
@@ -55,7 +55,7 @@ Alternatively you can run a balance optimize option (see below)
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-  xx <- names(bgc_pts_subzone[2])
+  xx <- names(bgc_pts_subzone[3])
   
   alldat = bgc_pts_subzone[[xx]]
   
@@ -146,7 +146,7 @@ getBestPars(opt_res, N = 5)
 
 bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-  #xx <- names(bgc_pts_subzone[1])
+  xx <- names(bgc_pts_subzone[3])
   
   alldat = bgc_pts_subzone[[xx]]
   
@@ -154,22 +154,17 @@ bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
   tdat <- alldat %>% mutate(slice = factor(slice))
   tdat <- tdat %>%
-    dplyr::select(id, fnf, x, y, bgc_cat,mapunit1, mapunit2, position,
+    dplyr::select(id,mapunit1, mapunit2, position,
       transect_id, tid, slice, any_of(reduced_vars))
   
-  tdat <- tdat[complete.cases(tdat[, 12:length(tdat)]), ]
-  tdat <- tdat %>% select(-fnf, -x,-y)
-  # run basic model (no smote and no downsample)
-  
-  train_data <- tdat 
-  train_data = as.data.table(train_data)
-  train_data <- droplevels(train_data)
+  tdat <- tdat[complete.cases(tdat[, 8:length(tdat)]), ]
+  tdat <- droplevels(tdat)
   
   balance_optimisation_iteration(
-      train_data,
+      train_data = tdat,
       fuzz_matrix = fmat,
-      ds_iterations = c(10,20,30,40,50,60,70,80,90),
-      smote_iterations = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,0.8, 0.9),
+      ds_iterations = 30, #c(10,20,30,40,50,60,70,80,90),
+      smote_iterations = NA, #c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,0.8, 0.9),
       mtry = mtry,
       min_n = min_n,
       use.neighbours = TRUE,
@@ -190,188 +185,34 @@ bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 ```{r consolidate acc outputs and graph, echo = FALSE, fig.width=8, fig.height=8}
 
 # combine all balance options into a single data table
-
- acc_total <- foreach::foreach(xx = names(bgc_pts_subzone), .errorhandling = "pass",.combine = rbind) %do% {
-    #k = data_list[2]
-    # print(k)
-     outDir = file.path(fid$model_draft[2], xx)
+acc_total <- foreach::foreach(xx = names(bgc_pts_subzone), .errorhandling = "pass",.combine = rbind) %do% {
+  #k = data_list[2]
+  # print(k)
+  outDir = file.path(fid$model_draft[2], xx)
   allacc <- combine_balance_ouputs(outDir)
   allacc <- allacc %>% dplyr::mutate(bgc = xx)
-
-  }
-
-# 
-# # consolidate outputs for each balancing method
-# out_dir <- file.path("../PEM_standards_manuscripts/models")
-# #out_dir <- file.path(out_dir, mname) 
-
-
-# for each bgc: 
-bgcs <- unique(as.factor(acc_total$bgc)) %>% droplevels()
-
-  best_results <- foreach(b = levels(bgcs), .combine=rbind) %do% {
   
-  b <- bgcs[1]
-  
-  acc_bgc <- acc_total %>% dplyr::filter(bgc %in% b)
- 
-  
-
-raw <- best_balance %>% 
-  filter(balance == "acc_base_results") %>%
-  select(-balance)
-  
-long_raw <- raw %>%
-  select(-bgc) %>%
-  gather(key = "column", value = "value_1")
-
-long_bal <- best_balance %>%
-  select(-bgc) %>%
-  gather(key = "column", value = "value_2", -balance)
-
-
-best_balance_difference <- long_bal %>%
-  inner_join(long_raw, by = "column") %>%
-  mutate(value = '-'(value_2, value_1)) %>%
-  select(balance, column, value) %>%
-  spread(key = "column", value = "value")
-  
-best_balance_difference <- best_balance_difference %>%
-  rowwise() %>%
-  dplyr::mutate(allsum = sum(c_across("aspat_paf_theta.5":"spat_paf_theta1")),
-                aspatial_sum = (aspat_paf_theta0 +  aspat_paf_theta.5 +  aspat_paf_theta1)/3,
-                spatial_sum = (spat_paf_theta0 +  spat_paf_theta.5 +  spat_paf_theta1)/3)
-
-
-
-
-
-  i = max(best_balance_difference$allsum)
-  
-  best_balance_difference$max = NA
-  
-  best_overall <- best_balance_difference[which(best_balance_difference$allsum == i),] %>% mutate(maxmetric = "best_overall") %>% 
-    dplyr::select(balance,  maxmetric, max, allsum)
- 
-
-best_balance_as <- best_balance %>%
-  group_by(balance)%>%
-  distinct() %>%
-  dplyr::summarise(across(where(is.numeric), mean)) %>%
-  rowwise()%>%
-  mutate(aspatial_sum = (aspat_paf_theta0 +  aspat_paf_theta.5 +  aspat_paf_theta1)/3,
-           spatial_sum = ( spat_paf_theta0 +  spat_paf_theta.5 +  spat_paf_theta1)/3)
-
-
-```
-
-```{r export table of best balancing, echo = FALSE, fig.width=8, fig.height=8}
-###_______________________________________________
-
- #out_dir =  "../Deception_AOI/3_maps_analysis/models/forest_non_forest/for_nfor_bgc/998/"   
-# calculate predicted vs obs pc for balancing types 
-  bgcs <- unique(as.factor(acc_total$bgc)) %>% droplevels()
-  # bgcs = "ESSFmcw"
-  # k=1
-
-balance_ID <- best_balance[,c(1:2)] %>% data.frame
-reps <- nrow(best_balance)
-
-raw <- best_balance %>% filter(balance == "raw") %>% dplyr::slice(rep(row_number(1), reps)) %>% dplyr::select(-bgc,-balance)
-raw2 <- raw %>% data.frame %>% dplyr::select(-bgc)
-best_balance2 <- best_balance %>% data.frame %>% dplyr::select(-bgc, -balance)
-best_balance_overall <-  best_balance2 - raw2 
-best_balance_overall2 <- best_balance_overall %>%  rowwise() %>% dplyr::mutate(add = sum(c_across(cols = everything()))) %>% cbind(balance_ID) 
-i = max(best_balance_overall2$add)
-best_balance_overall2$max = NA
-best_overall <- best_balance_overall2[which(best_balance_overall2$add == i),] %>% mutate(maxmetric = "best_overall") %>% dplyr::select(balance, bgc,  maxmetric, max, add)
-
-           
-best_balance <- acc_bgc %>%
-  group_by(bgc, balance) %>%
-  dplyr::select(balance, bgc, aspat_paf_theta0,  aspat_paf_theta1,  spat_paf_theta0,  spat_paf_theta1, aspat_paf_theta.5, spat_paf_theta.5 ) %>% distinct() %>%
-  dplyr::summarise(across(where(is.numeric), mean)) %>%
-  rowwise()%>%
-   mutate(aspatial_sum = (aspat_paf_theta0 +  aspat_paf_theta.5 +  aspat_paf_theta1)/3,
-          spatial_sum = ( spat_paf_theta0 +  spat_paf_theta.5 +  spat_paf_theta1)/3)
-
-raw <- best_balance %>% filter(balance == "raw") %>% mutate(aspat_overall = aspatial_sum, spat_overall = spatial_sum ) %>% dplyr::select(-balance, -aspatial_sum, -spatial_sum, bgc, aspat_paf_theta1,  aspat_paf_theta.5, aspat_paf_theta0, aspat_overall,  spat_paf_theta1,  spat_paf_theta.5,  spat_paf_theta0, spat_overall )
-
-
-i = max(best_balance$aspat_paf_theta0)
-best_aspat <- best_balance[which(best_balance$aspat_paf_theta0 == i),] %>% 
-  mutate(max = aspat_paf_theta0, maxmetric = "aspat_paf_theta0") %>% dplyr::select(balance, bgc, maxmetric, max,) 
-i = max(best_balance$ aspat_paf_theta.5)
-best_aspat_theta <- best_balance[which(best_balance$ aspat_paf_theta.5 == i),] %>% 
-  mutate(max =  aspat_paf_theta.5, maxmetric = "aspat_paf_theta.5") %>% dplyr::select(balance, bgc, maxmetric, max,) 
-i = max(best_balance$ aspat_paf_theta1)
-best_aspat_x <- best_balance[which(best_balance$ aspat_paf_theta1 == i),]%>% 
-  mutate(max =  aspat_paf_theta1, maxmetric = "aspat_paf_theta1") %>% dplyr::select(balance, bgc, maxmetric, max) 
-
-
-i = max(best_balance$ spat_paf_theta0)
-best_spat <- best_balance[which(best_balance$ spat_paf_theta0 == i),] %>% 
-  mutate(max =  spat_paf_theta0, maxmetric = "spat_paf_theta0") %>% dplyr::select(balance, bgc, maxmetric, max) 
-i = max(best_balance$ spat_paf_theta.5)
-best_spat_theta <- best_balance[which(best_balance$ spat_paf_theta.5 == i),] %>% 
-  mutate(max =  spat_paf_theta.5, maxmetric = "spat_paf_theta.5") %>% dplyr::select(balance, bgc, maxmetric, max,) 
-i = max(best_balance$ spat_paf_theta1)
-best_spat_x <- best_balance[which(best_balance$ spat_paf_theta1 == i),]%>% 
-  mutate(max =  spat_paf_theta1, maxmetric = "spat_paf_theta1") %>% dplyr::select(balance, bgc, maxmetric, max) 
-
-i = max(best_balance$aspatial_sum)
-aspatial_overall <- best_balance[which(best_balance$aspatial_sum == i),]%>% 
-  mutate(max = aspatial_sum, maxmetric = "aspat_overall") %>% dplyr::select(balance, bgc, maxmetric, max) 
-
-i = max(best_balance$spatial_sum)
-spatial_overall <- best_balance[which(best_balance$spatial_sum == i),]%>% 
-  mutate(max = spatial_sum, maxmetric = "spat_overall") %>% dplyr::select(balance, bgc, maxmetric, max)
-
-
-best_metric <- rbind(best_aspat,best_aspat_x, best_aspat_theta, aspatial_overall, best_spat, best_spat_theta, best_spat_x, spatial_overall) 
-best_metric2 <- best_metric %>% pivot_wider(id_cols = bgc, names_from = maxmetric, values_from = max) %>% dplyr::select(bgc,  aspat_paf_theta1,  aspat_paf_theta.5, aspat_paf_theta0, aspat_overall,  spat_paf_theta1,  spat_paf_theta.5,  spat_paf_theta0, spat_overall)
-
-best_metric3 <- rbind(best_metric2, raw) %>% dplyr::select(-"bgc") %>% data.frame #
-best_metric3[c("add"),] <- best_metric3[1,] - best_metric3[2,] 
-best_metric3 <- best_metric3[3,] %>% t() %>% data.frame %>% rownames_to_column("maxmetric") %>% data.table
-setDT(best_metric)[best_metric3, "add" := add, on = .(maxmetric)]
-best_metric4 <- best_metric %>% data.frame %>% dplyr::select(balance, bgc, maxmetric,max, add) %>% rbind(best_overall)%>% mutate(balance = str_replace_all(balance, "_", "")) 
-best_metric4
 }
 
- fwrite(best_results, paste0(out_dir, "BestBalancing_noextra.csv"))
+
+# select the best metrics for each Bec variant 
+
+bgcs <- unique(as.factor(acc_total$bgc)) %>% droplevels()
+
+best_results <- foreach(b = levels(bgcs), .combine=rbind) %do% {
+  b <- bgcs[2]
   
- best_results2 <- best_results %>% rowwise()  %>%
-   mutate(max = ifelse(maxmetric %in% "best_overall", max/6, max), add = ifelse(maxmetric %in% "best_overall", add/6, add)) %>%
-   mutate(max = round(max,3)*100, add = round(add,3)*100) %>% 
-   mutate(best = paste0(balance, " + ", add, "%"))
- best_results2 <- best_results2 %>% pivot_wider(id_cols = bgc, names_from = maxmetric, values_from = best) %>% 
-   dplyr::rename(BGC = bgc, Aspatial_0 = aspat_paf_theta0, Aspatial_0.5 =  aspat_paf_theta.5, Aspatial_1 =  aspat_paf_theta1,  Aspatial_overall = aspat_overall, Spatial_0 =  spat_paf_theta0, Spatial_0.5 =  spat_paf_theta.5, Spatial_1 =  spat_paf_theta1, Spatial_overall = spat_overall, Best_overall = best_overall)
- 
- fwrite(best_results2, paste0(out_dir, "BestBalancing_Formatted_noextra.csv")) 
-require(flextable) 
-best_results3 <- as_tibble(best_results2) %>% 
-   tibble::rownames_to_column() %>%  
-   pivot_longer(-rowname) %>% 
-   pivot_wider(names_from=rowname, values_from=value) %>% 
-   row_to_names(row_number = 1) %>% dplyr::rename("Fuzzy Metric" = BGC)
-#init_flextable_defaults()
-best_balance_flex <- flextable(best_results3) %>% flextable::width(width = 1.5) %>% fit_to_width(max_width = 7, inc = 1L, max_iter = 20, unit = "in")
-flextable_dim(best_balance_flex)
-plot(best_balance_flex) 
-save_as_docx(best_balance_flex , path = "../PEM_standards_manuscripts/outputs/BestBalance.docx")
+  acc_bgc <- acc_total %>% dplyr::filter(bgc %in% b)
+  best_metrics <- select_best_acc(acc_bgc) %>% 
+    mutate(bgc = b)
+  
+  best_metrics
+  
+}
 
-best_results_save <-  best_results %>% filter(maxmetric %in% "best_overall") %>% dplyr::select(bgc, balance)
-best_results_save [c('downsample_ratio', 'smote_ratio')] <- str_split_fixed(best_results_save$balance, 'sm', 2) 
-best_results_save$downsample_ratio <- str_replace(best_results_save$downsample_ratio, "ds", "") %>% as.numeric
-best_results_save$smote_ratio <- as.numeric(best_results_save$smote_ratio)
-out_dir3 =  file.path(paste(out_dir, mname, sep = "/"))
-fwrite(best_results_save, paste0(out_dir3, "/best_balance.csv"))
-fwrite(best_results_save, paste0(out_dir, "/best_balance.csv"))
-```
+in_dir <- fid$model_inputs0310[2]
 
-
-
+write.csv(best_results, file.path(in_dir, "best_balancing.csv"))
 
 ```
 
