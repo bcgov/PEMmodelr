@@ -163,8 +163,8 @@ bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   balance_optimisation_iteration(
       train_data = tdat,
       fuzz_matrix = fmat,
-      ds_iterations = 30, #c(10,20,30,40,50,60,70,80,90),
-      smote_iterations = NA, #c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,0.8, 0.9),
+      ds_iterations = NA, #c(10,20,30,40,50,60,70,80,90),
+      smote_iterations = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,0.8, 0.9),
       mtry = mtry,
       min_n = min_n,
       use.neighbours = TRUE,
@@ -185,7 +185,7 @@ bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 ```{r consolidate acc outputs and graph, echo = FALSE, fig.width=8, fig.height=8}
 
 # combine all balance options into a single data table
-acc_total <- foreach::foreach(xx = names(bgc_pts_subzone), .errorhandling = "pass",.combine = rbind) %do% {
+acc_total <- foreach::foreach(xx = names(bgc_pts_subzone)[3], .errorhandling = "pass",.combine = rbind) %do% {
   #k = data_list[2]
   # print(k)
   outDir = file.path(fid$model_draft[2], xx)
@@ -200,7 +200,7 @@ acc_total <- foreach::foreach(xx = names(bgc_pts_subzone), .errorhandling = "pas
 bgcs <- unique(as.factor(acc_total$bgc)) %>% droplevels()
 
 best_results <- foreach(b = levels(bgcs), .combine=rbind) %do% {
-  b <- bgcs[2]
+  b <- bgcs[1]
   
   acc_bgc <- acc_total %>% dplyr::filter(bgc %in% b)
   best_metrics <- select_best_acc(acc_bgc) %>% 
