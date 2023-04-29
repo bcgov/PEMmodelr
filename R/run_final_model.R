@@ -9,6 +9,7 @@
 #' @return parsnip model object
 #' @import parsnip
 #' @import recipes
+#' @importFrom magrittr "%>%"
 #' @export
 #' @examples
 #' run_final_model(train_data,fuzz_matrix, mtry = 14, min_n = 7, ds_ratio = NULL,sm_ratio = NULL)

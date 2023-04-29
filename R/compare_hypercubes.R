@@ -16,7 +16,7 @@
 #' @param return_spatial TRUE/FALSE to generate of 2 layers ina geopackage showing where there is missing space in the target AOI and source areas from the sample
 #' @param min_bin the minimum number of points in a bin to be considered adequately sampled
 #' @import data.table
-#' @import terra
+#' @importFrom terra sapp
 #' @importFrom sf st_drop_geometry
 #' @keywords subsample, covariates, predictors, raster
 #' @export

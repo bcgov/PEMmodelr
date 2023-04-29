@@ -6,7 +6,6 @@
 #' @param cutoff set the correlation threshold for removal
 #' @param corr_plot output a correlation plot
 #' @keywords correlation, feature reduction
-#' @import dplyr
 #' @importFrom magrittr "%>%"
 #' @importFrom stats cor
 #' @importFrom caret findCorrelation

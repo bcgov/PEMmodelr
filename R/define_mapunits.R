@@ -6,6 +6,7 @@
 #' @import sf
 #' @importFrom dplyr select left_join rename
 #' @importFrom stringr str_trim
+#' @importFrom magrittr "%>%"
 #' @return sf attribute with updated mapunit 1 and mapunit 2 fields
 #' @export
 #'

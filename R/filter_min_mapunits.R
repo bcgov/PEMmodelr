@@ -2,7 +2,7 @@
 #'
 #' @param tpts training data points set
 #' @param min_no minimum no of mapunit points (based on Origin position )
-#' @import dplyr
+#' @importFrom dplyr count filter
 #' @importFrom magrittr "%>%"
 #' @return dataframe with the filtered mapunits removed
 #' @export
@@ -17,7 +17,7 @@ filter_min_mapunits <- function(tpts, min_no){
 
   if("position" %in% names(tpts)) {
     otpts <- tpts %>%
-      filter(position == "Orig")
+      dplyr::filter(position == "Orig")
   } else {
     otpts <- tpts
   }

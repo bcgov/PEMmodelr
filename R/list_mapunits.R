@@ -3,9 +3,9 @@
 #' returns a list of unique map units from mapunit1 and mapunit2 fields
 #'
 #' @param tps dataframe of mapunits
-#' @import magrittr
-#' @import sf
-#' @import dplyr
+#' @importFrom magrittr "%>%"
+#' @importFrom sf st_drop_geometry
+#' @importFrom dplyr select distinct rename
 #' @keywords mapunit
 #' @export
 #' @examples
@@ -19,7 +19,7 @@ list_mapunits <- function(tps) {
 
     #print("sf")
     tps <- tps %>%
-      st_drop_geometry
+      sf::st_drop_geometry
   }
 
   mapunit1_unique <- tps %>%

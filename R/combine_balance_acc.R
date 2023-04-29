@@ -3,7 +3,7 @@
 #' @param bal_dir directory in which all accuracy metrics are stored
 #' @importFrom magrittr "%>%"
 #' @importFrom foreach foreach
-#' @importFrom dplyr mutate filter group_by summarise rowwise across
+#' @importFrom dplyr mutate filter group_by summarise rowwise across distinct ungroup
 #' @importFrom tidyr gather spread
 #' @return datatable with all compiled balance data sets
 #' @export
@@ -52,7 +52,7 @@ select_best_acc <- function(aresults){
     dplyr::group_by(balance) %>%
     dplyr::select(balance,aspat_paf_theta1, aspat_paf_theta.5, aspat_paf_theta0, spat_paf_theta1,  spat_paf_theta.5, spat_paf_theta0 ) %>% distinct() %>%
     dplyr::summarise(across(where(is.numeric), mean)) %>%
-    ungroup()
+    dplyr::ungroup()
 
   # extract raw values
   raw <- best_balance %>%

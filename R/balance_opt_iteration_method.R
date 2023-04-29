@@ -6,6 +6,9 @@
 #' @param use.neighbours to use all spatial adjoining values, default is FALSE
 #' @param fuzz_matrix fuzzy matrix
 #' @param out_dir location where the balance output files will be stored
+#' @importFrom magrittr '%>%'
+#' @importFrom foreach foreach
+#' @importFrom dplyr mutate filter select rename rowwise group_by distinct top_n add_count
 #' @return outputs files directly to folder
 #' @export
 #'
