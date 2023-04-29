@@ -30,14 +30,14 @@ balance_optimisation_iteration <- function(train_data = train_data,
 
   # # # # testing lines
 #
-#     train_data = tdat
-#     fuzz_matrix = fmat
-#     ds_iterations = NA # c(10,20,30,40,50,60,70,80,90)
-#     smote_iterations = 0.5 #c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,0.8, 0.9),
-#     mtry = mtry
-#     min_n = min_n
-#     use.neighbours = TRUE
-#     out_dir = outDir
+    # train_data = tdat
+    # fuzz_matrix = fmat
+    # ds_iterations = NA # c(10,20,30,40,50,60,70,80,90)
+    # smote_iterations = 0.5 #c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,0.8, 0.9),
+    # mtry = mtry
+    # min_n = min_n
+    # use.neighbours = TRUE
+    # out_dir = outDir
   # create a subfolder to store all balance outputs:
 
   dir.create(file.path(out_dir, "balance"))
