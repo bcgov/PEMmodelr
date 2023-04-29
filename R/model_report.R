@@ -4,8 +4,8 @@
 #' Inputs are handed to a RMD report/ script.
 #' Outputs include the markdown report, the cross validation object,
 #' and a binary model (RDS) that can then be used to predict on new data.
-#'
-#' @param acc_output  training points cleaned
+#' @param trDat  training points cleaned
+#' @param acc_output  model output metrics datatable
 #' @param out_dir  output directory  This defaults to the project's root directory OR where the RMD script is saved.
 #' @keywords training data report
 #' @import rmarkdown
