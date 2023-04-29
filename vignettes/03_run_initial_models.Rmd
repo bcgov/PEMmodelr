@@ -55,7 +55,7 @@ Alternatively you can run a balance optimize option (see below)
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-  xx <- names(bgc_pts_subzone[3])
+  #xx <- names(bgc_pts_subzone[3])
   
   alldat = bgc_pts_subzone[[xx]]
   
@@ -68,11 +68,8 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
   tdat <- tdat[complete.cases(tdat[, 12:length(tdat)]), ]
   
-  # run basic model (no smote and no downsample)
-  
   train_data <- tdat 
-  train_data = as.data.table(train_data)
-  #train_data <-  train_data[grep("ICHmc2_", mapunit1), ]
+
   train_data <- droplevels(train_data)
   
   baseout <- run_base_model(
@@ -85,7 +82,7 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   write.csv(baseout, file.path(outDir, "acc_base_results.csv"))
   
   # generate model accuracy report
-  model_report(train_data,baseout, outDir)
+  model_report(train_data, baseout, outDir)
   
 })
 
@@ -163,7 +160,7 @@ bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   balance_optimisation_iteration(
       train_data = tdat,
       fuzz_matrix = fmat,
-      ds_iterations = NA, #c(10,20,30,40,50,60,70,80,90),
+      ds_iterations = c(10,20,30,40,50,60,70,80,90),
       smote_iterations = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,0.8, 0.9),
       mtry = mtry,
       min_n = min_n,
@@ -180,7 +177,6 @@ bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 
 # Consolidate all balancing options and find optimum
 
-# 1) Optimizing for MAP - UNIT Accuracy
 
 ```{r consolidate acc outputs and graph, echo = FALSE, fig.width=8, fig.height=8}
 
@@ -200,7 +196,7 @@ acc_total <- foreach::foreach(xx = names(bgc_pts_subzone)[3], .errorhandling = "
 bgcs <- unique(as.factor(acc_total$bgc)) %>% droplevels()
 
 best_results <- foreach(b = levels(bgcs), .combine=rbind) %do% {
-  b <- bgcs[1]
+  #b <- bgcs[1]
   
   acc_bgc <- acc_total %>% dplyr::filter(bgc %in% b)
   best_metrics <- select_best_acc(acc_bgc) %>% 
