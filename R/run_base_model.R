@@ -27,9 +27,10 @@ run_base_model <- function(train_data,
 # use.neighbours = TRUE
 # # # end testing lines
 
-  ref_dat <- copy(train_data)
-  ref_dat[,mapunit1 := as.factor(mapunit1)]
-  ref_dat[,slice := as.factor(slice)]
+  # training set - train only on pure calls
+  ref_dat <- train_data %>%
+    dplyr::mutate(mapunit1 = as.factor(mapunit1),
+                  slice = as.factor(slice))
   print("Training raw data models...")
 
   munits <- unique(ref_dat$mapunit1)
@@ -54,17 +55,40 @@ run_base_model <- function(train_data,
     }
 
     ref_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
-      #k = levels(slices)[1]
-      ref_train <- ref_dat[slice != k & position == "Orig",]
-      ref_train[,c("id","mapunit2", "position","slice","transect_id","bgc_cat") := NULL]
-      low_units <- ref_train[,.(NumUnit = .N), by = .(mapunit1)][NumUnit < 10,]
-      ref_train <- ref_train[!mapunit1 %in% low_units$mapunit1,]
+
+      #create training set
+      ref_train <- ref_dat %>%
+        dplyr::filter(!slice %in% k) %>%
+        filter(is.na(mapunit2)) %>% # train only on pure calls
+        filter(position == "Orig") %>%
+        dplyr::select(-id, -slice, -mapunit2,-position, -transect_id)%>%
+        droplevels()
+
+      MU_count <- ref_train %>% dplyr::count(mapunit1) %>% filter(n > 10)
+
+      ref_train <- ref_train %>% filter(mapunit1 %in% MU_count$mapunit1)  %>%
+        droplevels()
 
       if (use.neighbours) {
-        ref_test <- ref_dat[slice == k & !mapunit1 %in% low_units$mapunit1,]
+        # test set
+        ref_test <- ref_dat %>%
+          filter(slice %in% k) %>%
+          filter(mapunit1 %in% MU_count$mapunit1) %>%
+          #dplyr::select(-id, -slice,-position, -transect_id) %>%
+          droplevels()
+
       }else{
-        ref_test <- ref_dat[slice == k & !mapunit1 %in% low_units$mapunit1 & position == "Orig",]
+
+        ref_test <- ref_dat %>%
+          filter(slice %in% k) %>%
+          filter(mapunit1 %in% MU_count$mapunit1) %>%
+          filter(position == "Origin") %>%
+          #dplyr::select(-id, -slice,-position, -transect_id) %>%
+          droplevels()
+
       }
+
+      ref_id <- ref_test %>% select(id, mapunit1, mapunit2 )
 
       null_recipe <-  recipes::recipe(mapunit1 ~ ., data = ref_train) %>%
         recipes::update_role(tid, new_role = "id variable")
@@ -84,8 +108,8 @@ run_base_model <- function(train_data,
       #oob  <- round(ref_mod$fit$fit$fit$prediction.error, 3)
 
       preds <- predict(ref_mod, ref_test)
-      pred_all <- cbind(ref_test[,.(id, mapunit1, mapunit2, slice)],
-                        .pred_class = preds$.pred_class)
+
+      pred_all <- cbind(ref_id,.pred_class = preds$.pred_class)
 
       pred_all <- pred_all %>% mutate(mapunit1 = as.character(mapunit1),
                                       mapunit2 = as.character(mapunit2),
@@ -97,8 +121,15 @@ run_base_model <- function(train_data,
                mapunit2 = ifelse(mapunit2 %in% nf_mapunits, "nonfor", mapunit2) ,
                .pred_class = ifelse(.pred_class  %in% nf_mapunits, "nonfor", .pred_class ))
 
-      pred_all$mapunit1 <- as.factor(pred_all$mapunit1)
-      pred_all$mapunit2 <- as.factor(pred_all$mapunit2)
+
+      pred_all <- pred_all %>%
+        dplyr::mutate(mapunit1 = ifelse(mapunit1  %in% nf_mapunits, "nonfor", mapunit1 ),
+                      mapunit2 = ifelse(mapunit2 %in% nf_mapunits, "nonfor", mapunit2) ,
+                      .pred_class = ifelse(.pred_class  %in% nf_mapunits, "nonfor", .pred_class ))
+
+      # harmonize factor levels
+      pred_all <- harmonize_factors(pred_all)
+      pred_all$mapunit2 = as.factor(pred_all$mapunit2)
 
       print(paste0("generating accuracy metrics for slice:",k))
 
