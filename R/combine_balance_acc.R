@@ -44,7 +44,7 @@ combine_balance_ouputs <- function(bal_dir){
 select_best_acc <- function(aresults){
 
   # testing
- # aresults <- acc_bgc
+# aresults <- acc_bgc
   # end testing
 
   # get best output
@@ -83,7 +83,7 @@ select_best_acc <- function(aresults){
   max_raw_overall <- best_balance %>%
     dplyr::filter(balance %in% c(max_overall,"acc_base_results" ))%>%
     dplyr::rowwise() %>%
-    dplyr::mutate(allsum = (sum(c_across("aspat_paf_theta.5":"spat_paf_theta1")))/6) %>%
+    dplyr::mutate(allsum = sum(c_across("aspat_paf_theta.5":"spat_paf_theta1"))) %>%
     dplyr::select(balance, allsum)
 
   max_overall <- best_balance %>%
@@ -96,11 +96,11 @@ select_best_acc <- function(aresults){
   raw_overall <- best_balance %>%
     dplyr::filter(balance == "acc_base_results") %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(value_1 = sum(c_across("aspat_paf_theta.5":"spat_paf_theta1"))) %>%
+    dplyr::mutate(value_1 = (sum(c_across("aspat_paf_theta.5":"spat_paf_theta1")))/6) %>%
     dplyr::select(value_1) %>%
     dplyr::mutate(column = "overall")
 
-  max_raw_overall <- left_join(max_overall, raw_overall)
+  max_raw_overall <- left_join(max_overall, raw_overall, by = "column")
 
 
   # 2) select best based on aspat and spat values
