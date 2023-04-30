@@ -173,7 +173,7 @@ bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 ```{r consolidate acc outputs and graph, echo = FALSE, fig.width=8, fig.height=8}
 
 # combine all balance options into a single data table
-acc_total <- foreach::foreach(xx = names(bgc_pts_subzone)[3], .errorhandling = "pass",.combine = rbind) %do% {
+acc_total <- foreach::foreach(xx = names(bgc_pts_subzone), .errorhandling = "pass",.combine = rbind) %do% {
   #k = data_list[2]
   # print(k)
   outDir = file.path(fid$model_draft[2], xx)
