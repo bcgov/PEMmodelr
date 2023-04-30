@@ -19,13 +19,13 @@ run_base_model <- function(train_data,
                            min_n = 7,
                            use.neighbours = TRUE){
 
-# # # testing lines:
+# # # # testing lines:
 # train_data = train_data
 # fuzz_matrix = fmat
 # mtry = mtry
 # min_n = min_n
 # use.neighbours = TRUE
-# # # end testing lines
+# # # # end testing lines
 
   # training set - train only on pure calls
   ref_dat <- train_data %>%
@@ -56,6 +56,7 @@ run_base_model <- function(train_data,
 
     ref_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
 
+      #k = levels(slices)[1]
       #create training set
       ref_train <- ref_dat %>%
         dplyr::filter(!slice %in% k) %>%
@@ -117,12 +118,6 @@ run_base_model <- function(train_data,
 
       # switch out the predicted Nf units for "nonfor" catergory.
       pred_all <- pred_all %>%
-        mutate(mapunit1 = ifelse(mapunit1  %in% nf_mapunits, "nonfor", mapunit1 ),
-               mapunit2 = ifelse(mapunit2 %in% nf_mapunits, "nonfor", mapunit2) ,
-               .pred_class = ifelse(.pred_class  %in% nf_mapunits, "nonfor", .pred_class ))
-
-
-      pred_all <- pred_all %>%
         dplyr::mutate(mapunit1 = ifelse(mapunit1  %in% nf_mapunits, "nonfor", mapunit1 ),
                       mapunit2 = ifelse(mapunit2 %in% nf_mapunits, "nonfor", mapunit2) ,
                       .pred_class = ifelse(.pred_class  %in% nf_mapunits, "nonfor", .pred_class ))
@@ -136,6 +131,7 @@ run_base_model <- function(train_data,
       acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix)%>%
         dplyr::mutate(slice = k)
 
+     #write.csv(acc, "test2_acc.csv")
     }
 
   return(ref_acc)
