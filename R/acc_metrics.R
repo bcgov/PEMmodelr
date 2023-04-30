@@ -15,7 +15,7 @@
 #' @keywords accuracy, fuzzy sets, theta
 #' @export
 #' @examples
-# acc_metrics(pred_data, fuzz, theta = 0.5)
+#' acc_metrics(pred_data, fuzz, theta = 0.5)
 
 
 acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {

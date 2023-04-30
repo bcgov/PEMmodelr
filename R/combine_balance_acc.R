@@ -39,12 +39,22 @@ combine_balance_ouputs <- function(bal_dir){
 
 
 # function to select best balance options
-#' @rdname select_best_acc
+
+#' Select Best accuracy metric
+#'
+#' @param aresults dataframe with combined outputs
+#' @importFrom dplyr group_by select summarise ungroup inner_join
+#' @importFrom tidyr gather
+#' @return dataframe of best balance options
+#' @export
+#'
+#' @examples
+#' select_best_acc(aresults)
 
 select_best_acc <- function(aresults){
 
   # testing
- aresults <- acc_bgc
+# aresults <- acc_bgc
   # end testing
 
   # get best output
