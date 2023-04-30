@@ -44,7 +44,7 @@ combine_balance_ouputs <- function(bal_dir){
 select_best_acc <- function(aresults){
 
   # testing
-# aresults <- acc_bgc
+ aresults <- acc_bgc
   # end testing
 
   # get best output
@@ -83,20 +83,20 @@ select_best_acc <- function(aresults){
   max_raw_overall <- best_balance %>%
     dplyr::filter(balance %in% c(max_overall,"acc_base_results" ))%>%
     dplyr::rowwise() %>%
-    dplyr::mutate(allsum = sum(c_across("aspat_paf_theta.5":"spat_paf_theta1"))) %>%
+    dplyr::mutate(allsum = sum(c_across("aspat_paf_theta1":"spat_paf_theta0"))) %>%
     dplyr::select(balance, allsum)
 
   max_overall <- best_balance %>%
     dplyr::filter(balance %in% max_overall) %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(value_2 = (sum(c_across("aspat_paf_theta.5":"spat_paf_theta1")))/6) %>%
+    dplyr::mutate(value_2 = (sum(c_across("aspat_paf_theta1":"spat_paf_theta0")))/6) %>%
     dplyr::select(balance, value_2) %>%
     dplyr::mutate(column = "overall")
 
   raw_overall <- best_balance %>%
     dplyr::filter(balance == "acc_base_results") %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(value_1 = (sum(c_across("aspat_paf_theta.5":"spat_paf_theta1")))/6) %>%
+    dplyr::mutate(value_1 = (sum(c_across("aspat_paf_theta1":"spat_paf_theta0")))/6) %>%
     dplyr::select(value_1) %>%
     dplyr::mutate(column = "overall")
 
@@ -135,6 +135,19 @@ select_best_acc <- function(aresults){
             "max" = value_2,
             "raw" = value_1) %>%
      dplyr::mutate(balance = stringr::str_replace_all(balance, "acc_","")) #%>%
+
+   # split into easy to use columns
+   best_metrics <- best_metrics %>%
+     dplyr::mutate(ds = case_when(
+       stringr::str_detect(balance, "ds") ~ 'ds',
+       .default = NA)) %>%
+    dplyr::mutate(sm = case_when(
+       stringr::str_detect(balance, "sm") ~ 'sm',
+       .default = NA)) %>%
+     rowwise() %>%
+     dplyr::mutate(ds_ratio = ifelse(!is.na(ds), stringr::str_split(balance, "_")[[1]][2],NA),
+                   sm_ratio = ifelse(!is.na(sm) & !is.na(ds), stringr::str_split(balance, "_")[[1]][4],NA))%>%
+     dplyr::mutate(sm_ratio = ifelse(!is.na(sm) & is.na(ds), stringr::str_split(balance, "_")[[1]][2],sm_ratio))
 
    return(best_metrics)
 
