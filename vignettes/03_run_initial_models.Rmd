@@ -55,7 +55,7 @@ Alternatively you can run a balance optimize option (see below)
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-  #xx <- names(bgc_pts_subzone[3])
+  #xx <- names(bgc_pts_subzone[2])
   
   alldat = bgc_pts_subzone[[xx]]
   
@@ -63,10 +63,10 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
   tdat <- alldat %>% mutate(slice = factor(slice))
   tdat <- tdat %>%
-    dplyr::select(id, fnf, x, y, bgc_cat,mapunit1, mapunit2, position,
+    dplyr::select(id, mapunit1, mapunit2, position,
       transect_id, tid, slice, any_of(reduced_vars))
   
-  tdat <- tdat[complete.cases(tdat[, 12:length(tdat)]), ]
+  tdat <- tdat[complete.cases(tdat[, 8:length(tdat)]), ]
   
   train_data <- tdat 
 
@@ -87,14 +87,6 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 })
 
 ```
-
-
-# Generate and accuracy report? 
-
-
-
-
-
 
 
 
@@ -143,7 +135,7 @@ getBestPars(opt_res, N = 5)
 
 bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-  xx <- names(bgc_pts_subzone[3])
+  #xx <- names(bgc_pts_subzone[3])
   
   alldat = bgc_pts_subzone[[xx]]
   
