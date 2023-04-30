@@ -162,8 +162,6 @@ bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
 })
 
-
-
 ```
 
 
@@ -181,7 +179,6 @@ acc_total <- foreach::foreach(xx = names(bgc_pts_subzone), .errorhandling = "pas
   allacc <- allacc %>% dplyr::mutate(bgc = xx)
   
 }
-
 
 # select the best metrics for each Bec variant 
 
