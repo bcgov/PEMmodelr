@@ -14,44 +14,38 @@
 #' @importFrom dplyr mutate filter select rename rowwise group_by distinct top_n add_count
 #' @keywords accuracy, fuzzy sets, theta
 #' @export
-# library(yardstick)
-# library(janitor)
-# library(dplyr)
-# require(data.table)
-#
-# pred_data = fread("./temp_data/test_pred.csv")
-# fuzzmatrx = fread("./temp_data/fuzzy_matrix_basic_updated.csv")
-#   theta = 0.5
+#' @examples
+# acc_metrics(pred_data, fuzz, theta = 0.5)
 
-
-#pred_data = pred_all
-#fuzzmatrx = fuzz_matrix[,1:3]
 
 acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
 
   # ##1.  Selects max value between primary and secondary calls
-  # pred_data = pred_all
-  # fuzzmatrx = fuzz_matrix
+  #pred_data = pred_all
+  #fuzzmatrx = fuzz_matrix
   # theta = 0.5
   # # end testing line
 
   preds = c("id","mapunit1", "mapunit2", ".pred_class")
-  pred_data <- pred_data %>% dplyr::select(any_of(preds))
- # pred_data = replace(pred_data, is.na(pred_data), 0)
+  pred_data <- pred_data %>% dplyr::select(any_of(preds)) %>%
+    dplyr::mutate_if(is.factor, as.character)
+  pred_data = replace(pred_data, is.na(pred_data), 0)
 
+  # add the fuzzy value for mapunit 1 and predicted
   data1 <- dplyr::left_join(pred_data, fuzzmatrx, by = c("mapunit1" = "target", ".pred_class" = "Pred")) %>%
     dplyr::mutate_if(is.character, as.factor) %>%
     dplyr::mutate(fVal = ifelse(is.na(fVal), 0, fVal)) %>%
     dplyr::rename("p_fuzzval" = fVal)
 
+  # add the fuzzy value for mapunit 2 and predicted
   data2 <- dplyr::left_join(data1, fuzzmatrx, by = c("mapunit2" = "target", ".pred_class" = "Pred")) %>%
     dplyr::mutate_if(is.character, as.factor) %>%
     dplyr::mutate(fVal = ifelse(is.na(fVal), 0, fVal)) %>%# replace(is.na(data1$fVal), 0) %>%
     dplyr::rename("alt_fuzzval" = fVal)
 
 
-  ##2. selects the neighbour with max value
-
+  ##2. selects the neighbour with max value (based on primary and seconday),,
+  ## then group by the highest neighbour option.
   pdata <- data2 %>%
     dplyr::rowwise() %>%
     dplyr::mutate(pa_fuzzval = max(p_fuzzval, alt_fuzzval)) %>%
