@@ -148,7 +148,9 @@ mutate(type = case_when(
     stringr::str_detect(accuracy_type, "_p_") ~ "p",
     stringr::str_detect(accuracy_type, "_pa_") ~ "pa",
     stringr::str_detect(accuracy_type, "_paf_") ~ "paf"))%>%
-  mutate(valuepc = value*100)%>%
+  mutate(valuepc = value*100)
+
+acc_sum_long <- acc_sum_long %>%
   mutate(theta = regmatches(acc_sum_long$accuracy_type,regexpr("[0-9]+",acc_sum_long$accuracy_type))) %>%
   mutate(theta = case_when(
     theta == 5 ~ '0.5', 

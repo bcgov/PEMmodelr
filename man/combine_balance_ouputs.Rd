@@ -2,7 +2,7 @@
 % Please edit documentation in R/combine_balance_acc.R
 \name{combine_balance_ouputs}
 \alias{combine_balance_ouputs}
-\title{compile balance acccuray metrics}
+\title{compile balance accuray metrics}
 \usage{
 combine_balance_ouputs(bal_dir)
 }
@@ -13,7 +13,7 @@ combine_balance_ouputs(bal_dir)
 datatable with all compiled balance data sets
 }
 \description{
-compile balance acccuray metrics
+compile balance accuray metrics
 }
 \examples{
 combine_balance_outputs(bal_dir = file.path(fid$model_draft[2], "ESSFmc"))

@@ -7,7 +7,9 @@
 model_report(trDat, acc_output, out_dir)
 }
 \arguments{
-\item{acc_output}{training points cleaned}
+\item{trDat}{training points cleaned}
+
+\item{acc_output}{model output metrics datatable}
 
 \item{out_dir}{output directory  This defaults to the project's root directory OR where the RMD script is saved.}
 }
