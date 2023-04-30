@@ -19,8 +19,8 @@ fid <- setup_folders("CanyonCreek")
 
 in_dir <- fid$model_inputs0310[2]
 
-fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix_basic.csv" ))%>%
-  dplyr::select(target, Pred, fVal)
+#fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix.csv" ))%>%
+#  dplyr::select(target, Pred, fVal)
 
 # set up tuning (applies to all models)
 best_tune <- fread(file.path (in_dir, "best_tuning.csv"))
@@ -30,16 +30,32 @@ min_n <- best_tune$min_n
 # select reduced variables
 reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% pull()
 
+best_balance <- read.csv(file.path(in_dir, "best_balancing.csv"))
+
+
 bgc_pts_subzone <- readRDS(file.path(fid$model_inputs0310[2], "model_input_pts.rds"))
 
 ```
 
 ```{r}
 
+# select the balance otption 
+#[1] "aspat_paf_theta.5" "aspat_paf_theta0" 
+#[3] "aspat_paf_theta1"  "aspatial_sum"     
+#[5] "spat_paf_theta.5"  "spat_paf_theta0"  
+#[7] "spat_paf_theta1"   "spatial_sum"      
+#[9] "overall"  
+
+mbal <-"overall" 
+
+mbaldf <- best_balance %>% dplyr::filter(maxmetric == mbal) %>%
+  select(bgc, balance, ds_ratio, sm_ratio) 
+
+
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-  xx <- names(bgc_pts_subzone[1])
-  
+  xx <- names(bgc_pts_subzone[2])
+  print(xx)
   alldat = bgc_pts_subzone[[xx]]
 
   outDir = file.path(fid$model_final[2], xx)
@@ -48,25 +64,24 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
     dplyr::filter(position == "Orig") %>%
     dplyr::select(mapunit1, any_of(reduced_vars))
   
-  final_data <-  final_data[complete.cases(tdat[, 2:length(final_data)]), ]
-
-  # testing 
-  final_data = as.data.table(final_data)
-  final_data <-  final_data[grep("ICHmc2_", mapunit1), ]
-  # end testing 
+  final_data <-  final_data[complete.cases(final_data[, 2:length(final_data)]), ]
+  
+  bgc_bal = mbaldf %>% filter(bgc == xx)
+  ds_ratio = bgc_bal %>% pull(ds_ratio)
+  sm_ratio = bgc_bal %>% pull(sm_ratio)
   
   final_model <- run_final_model(
-      train_data,
-      fuzz_matrix = fmat,
-      mtry = 14, #mtry
-      min_n = 7, #min_n
-      ds_ratio = NULL, 
-      sm_ratio = NULL)
+      final_data,
+      #fuzz_matrix = fmat,
+      mtry = mtry,
+      min_n = min_n,
+      ds_ratio = ds_ratio, 
+      sm_ratio = sm_ratio)
   
   # Output model 
 saveRDS(final_model, file.path(outDir, "final_model.rds"))
 
-}
+})
 
 
 ```

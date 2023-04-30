@@ -21,6 +21,9 @@ This currently includes: accuracy, mcc, spatial metrics for primary, primary + a
 and primary + alternate + fuzzy for theta adjusts set at 0, 0.5, 1. Also aspatial proportions
 for primary+alternate+fuzzy with the same 3 theta settings
 }
+\examples{
+acc_metrics(pred_data, fuzz, theta = 0.5)
+}
 \keyword{accuracy,}
 \keyword{fuzzy}
 \keyword{sets,}

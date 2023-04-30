@@ -4,19 +4,10 @@
 \alias{run_final_model}
 \title{Run final random forest model}
 \usage{
-run_final_model(
-  ref_dat,
-  fuzz_matrix,
-  mtry,
-  min_n,
-  ds_ratio = NULL,
-  sm_ratio = NULL
-)
+run_final_model(ref_dat, mtry, min_n, ds_ratio = NA, sm_ratio = NA)
 }
 \arguments{
 \item{ref_dat}{full training dataset}
-
-\item{fuzz_matrix}{data table with fuzzy metrics}
 
 \item{mtry}{numeric. This is the output based on output of hyperparamter model tuning (default = ??)}
 

@@ -1,7 +1,6 @@
 #' Run final random forest model
 #'
 #' @param ref_dat full training dataset
-#' @param fuzz_matrix data table with fuzzy metrics
 #' @param mtry numeric. This is the output based on output of hyperparamter model tuning (default = ??)
 #' @param min_n numeric. This is the output based on output of hyperparamter model tuning (default = ??)
 #' @param ds_ratio numeric
@@ -14,19 +13,19 @@
 #' @examples
 #' run_final_model(train_data,fuzz_matrix, mtry = 14, min_n = 7, ds_ratio = NULL,sm_ratio = NULL)
 
-run_final_model <- function(ref_dat,fuzz_matrix, mtry, min_n, ds_ratio = NULL, sm_ratio = NULL){
+run_final_model <- function(ref_dat, mtry, min_n, ds_ratio = NA, sm_ratio = NA){
 
-    #
-     ref_dat = final_data
-     fuzz_matrix = fmat
-     mtry = mtry
-     min_n = min_n
-     ds_ratio = ds_ratio
-     sm_ratio = sm_ratio
+    # # # #
+    #  ref_dat = final_data
+    #  mtry = mtry
+    #  min_n = min_n
+    #  ds_ratio = ds_ratio
+    #  sm_ratio = sm_ratio
 
 
   # prep data
-     ref_dat <- ref_dat %>% mutate(mapunit1 = as.factor(mapunit1))
+     ref_dat <- ref_dat %>%
+       mutate(mapunit1 = as.factor(mapunit1))
 
      MU_count <- ref_dat %>% dplyr::count(mapunit1) %>% filter(n > 10)
 
@@ -34,7 +33,7 @@ run_final_model <- function(ref_dat,fuzz_matrix, mtry, min_n, ds_ratio = NULL, s
        droplevels()
 
      munits <- unique(ref_dat$mapunit1)
-     nf_mapunits <- grep(munits, pattern = "_\\d", value = TRUE, invert = TRUE)
+    # nf_mapunits <- grep(munits, pattern = "_\\d", value = TRUE, invert = TRUE)
 
      ref_dat <- ref_dat[complete.cases(ref_dat[, 2:length(ref_dat)]), ]
 
@@ -76,7 +75,7 @@ run_final_model <- function(ref_dat,fuzz_matrix, mtry, min_n, ds_ratio = NULL, s
 
     best_recipe <-  recipes::recipe(mapunit1 ~ ., data = ref_dat) %>%
       themis::step_downsample(mapunit1, under_ratio = ds_ratio) %>%
-      themis::step_smote(mapunit1, over_ratio = sm_ratio , neighbors = 10, skip = TRUE)
+      themis::step_smote(mapunit1, over_ratio = sm_ratio , neighbors = 2, skip = TRUE)
 
   }
 
