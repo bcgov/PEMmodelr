@@ -13,14 +13,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r  libraries}
 #remotes::install_github("bcgov/PEMprepr", build_vignettes = TRUE)
 devtools::load_all("D:\\PEM_DATA\\PEMprepr")
-devtools::load_all("D:\\PEM_DATA\\PEMsamplr")
+#devtools::load_all("D:\\PEM_DATA\\PEMsamplr")
 devtools::load_all("D:\\PEM_DATA\\PEMmodelr")
 
 library(PEMprepr)
-library(PEMsamplr)
+#library(PEMsamplr)
 library(PEMmodelr)
 library(dplyr)
-library(data.table)
+#library(data.table)
 library(tidymodels)
 
 fid <- setup_folders("CanyonCreek")
@@ -31,21 +31,118 @@ fid <- setup_folders("CanyonCreek")
 ```{r cars}
 # set up the standard inputs 
 
-cov_dir <- file.path(fid$cov_dir_1020[2], "5m")
+in_dir <- fid$model_inputs0310[2]
+
+model_dir <- fid$model_final[2]
+
+
+#fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix.csv" ))%>%
+#  dplyr::select(target, Pred, fVal)
+
+# select reduced variables
+reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% pull()
+
+#cov_dir <- file.path(fid$cov_dir_1020[2], "5m")
+cov_dir <- "D:\\PEM_DATA\\BEC_DevExchange_Work\\Deception_AOI\\1_map_inputs\\covariates\\5m"
+
 rtemplate <- terra::rast(file.path(cov_dir, "template.tif"))
   
 
-model_dir <- fid$model_final[2]
+## Build raster stack 
+
+rast_list <- list.files(cov_dir, pattern = ".sdat$|.tif$", full.names = T, recursive = T)
+
+rast_list <- rast_list[tolower(gsub(".sdat$|.tif$", "", basename(rast_list))) %in% tolower(reduced_vars)]
+
+rstack <- terra::rast(rast_list)
+
+
+# make the tile 
+tile_dir <- file.path(model_dir, "tiles")
+if(!dir.exists(file.path(tile_dir))){dir.create(file.path(tile_dir))} 
+
+# generate tiles 
+ntiles <- terra::makeTiles(rtemplate, 500, filename = file.path(tile_dir, "tile_.tif"),  na.rm=FALSE, overwrite = FALSE)
+
+#ntiles <- list.files(tile_dir)
+
+
+
+
+
+# for each bgc 
+
 bgc_list <- list.files(model_dir)
 
-# loop for BGC S
-bgc <- bgc_list[3]
+#for(i in bec_zones){
+  bgc <- bgc_list[1]
+  
+  final_dir <- file.path(model_dir,bgc)
+  
+  fmodel <- readRDS(file.path(final_dir, "final_model.rds"))
 
-tile_dir <- file.path(model_dir, bgc, "tiles")
- if(!dir.exists(file.path(tile_dir))){dir.create(file.path(tile_dir))} 
+  rf_fit <- workflows::extract_fit_parsnip(fmodel)
+
+  
+  for (i in ntiles)) {
+
+     # get tile
+     i <- ntiles[7]
+
+     t <- terra::rast(file.path(i))  ## read in tile
+     print(paste("working on ", basename(i), "of", length(ntiles)))
+     print("...")
+
+     print("... loading new data (from rasters)...")
+
+     
+     tvec <- terra::as.polygons(t)
+
+     # add a parameter for probability outputs 
+     #if(prob = TRUE){
+     # this provides a stack with each % for each mapunit
+     # Uses the terra package 
+     tstack <- terra::crop(rstack, tvec)
+     pred <- terra::predict(tstack, rf_fit$fit , na.rm = TRUE)
+     
+     pdfxy <- as.data.frame(pred, xy = TRUE, cells = TRUE)
+     pdf <- pdfxy %>% select(-x, -y)
+     pdfid <-  pdfxy %>% select(x, y)
+     
+     #aa <- pdf[, "max"] <- apply(pdf[, 4:length(pdf)], 1, max)
+     
+     best_class <- colnames(pdf)[apply(pdf[,2:length(pdf)] ,1, which.max)]
+     
+     best_class <- cbind(pdfid, best_class)
+     
+     best_raster <- terra::rast(best_class, type = 'xyz')
+
+     plot(best_raster)
+#
+#
+#
+#     allrasts <- file.path(covdir, res_folder)
+#
+#
+#     tile_size
+#     out_dir
+#
+  
+  
+  
+  
+
+  
+}
 
 
-fmodel <- readRDS(file.path(model_dir, bgc,"final_model.rds"))
+# model = file.path(outDir, modeltype)
+# cov = rast_list
+# tilesize = 500
+#  outDir = outDir
+
+
+
 
 
 
