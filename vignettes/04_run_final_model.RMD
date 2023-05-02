@@ -51,10 +51,10 @@ mbal <-"overall"
 mbaldf <- best_balance %>% dplyr::filter(maxmetric == mbal) %>%
   select(bgc, balance, ds_ratio, sm_ratio) 
 
-
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-  xx <- names(bgc_pts_subzone[2])
+  #xx <- names(bgc_pts_subzone[2])
+  
   print(xx)
   alldat = bgc_pts_subzone[[xx]]
 
@@ -64,7 +64,7 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
     dplyr::filter(position == "Orig") %>%
     dplyr::select(mapunit1, any_of(reduced_vars))
   
-  final_data <-  final_data[complete.cases(final_data[, 2:length(final_data)]), ]
+  final_data <-  final_data[complete.cases(final_data[,2:length(final_data)]),]
   
   bgc_bal = mbaldf %>% filter(bgc == xx)
   ds_ratio = bgc_bal %>% pull(ds_ratio)
@@ -72,7 +72,6 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
   final_model <- run_final_model(
       final_data,
-      #fuzz_matrix = fmat,
       mtry = mtry,
       min_n = min_n,
       ds_ratio = ds_ratio, 
@@ -82,6 +81,5 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 saveRDS(final_model, file.path(outDir, "final_model.rds"))
 
 })
-
 
 ```
