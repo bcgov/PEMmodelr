@@ -19,13 +19,13 @@ run_base_model <- function(train_data,
                            min_n = 7,
                            use.neighbours = TRUE){
 
-# # # # testing lines:
+# # # # # testing lines:
 # train_data = train_data
 # fuzz_matrix = fmat
 # mtry = mtry
 # min_n = min_n
 # use.neighbours = TRUE
-# # # # end testing lines
+# # # # # end testing lines
 
   # training set - train only on pure calls
   ref_dat <- train_data %>%
@@ -56,7 +56,7 @@ run_base_model <- function(train_data,
 
     ref_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
 
-      #k = levels(slices)[1]
+      k = levels(slices)[3]
       #create training set
       ref_train <- ref_dat %>%
         dplyr::filter(!slice %in% k) %>%
@@ -75,7 +75,6 @@ run_base_model <- function(train_data,
         ref_test <- ref_dat %>%
           filter(slice %in% k) %>%
           filter(mapunit1 %in% MU_count$mapunit1) %>%
-          #dplyr::select(-id, -slice,-position, -transect_id) %>%
           droplevels()
 
       }else{
@@ -84,7 +83,6 @@ run_base_model <- function(train_data,
           filter(slice %in% k) %>%
           filter(mapunit1 %in% MU_count$mapunit1) %>%
           filter(position == "Origin") %>%
-          #dplyr::select(-id, -slice,-position, -transect_id) %>%
           droplevels()
 
       }
@@ -128,7 +126,7 @@ run_base_model <- function(train_data,
 
       print(paste0("generating accuracy metrics for slice:",k))
 
-      acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix)%>%
+      acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix) %>%
         dplyr::mutate(slice = k)
 
      #write.csv(acc, "test2_acc.csv")
