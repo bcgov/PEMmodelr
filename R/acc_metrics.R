@@ -21,9 +21,9 @@
 acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
 
   # ##1.  Selects max value between primary and secondary calls
-  #pred_data = pred_all
-  #fuzzmatrx = fuzz_matrix
-  # theta = 0.5
+ # pred_data = pred_all
+#  fuzzmatrx = fuzz_matrix
+#  theta = 0.5
   # # end testing line
 
   preds = c("id","mapunit1", "mapunit2", ".pred_class")
@@ -299,7 +299,19 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::select(mapunit1, aspat_paf_theta0, aspat_paf_theta.5, aspat_paf_theta1)
 
   accuracy_stats <- dplyr::left_join(accuracy_stats, aspat_fpa_df, by = "mapunit1") %>%
-    dplyr::select(mapunit1, trans.sum, trans.tot, pred.tot, no.classes, everything())
+  #accuracy_stats <- accuracy_stats %>%
+      dplyr::select(mapunit1, trans.sum, trans.tot, pred.tot, no.classes,
+                  acc, kap, spat_p_correct, spat_pa_correct, spat_pf_correct,
+                  spat_paf_correct, spat_p, spat_pa, spat_pf, spat_paf,
+                  spat_p_theta0, spat_p_theta.5, spat_p_theta1,
+                  spat_pa_theta0, spat_pa_theta.5, spat_pa_theta1,
+                  spat_paf_theta0, spat_paf_theta.5, spat_paf_theta1,
+                  aspat_p, aspat_pa, aspat_p_wtd, aspat_pa_wtd ,
+                  aspat_p_theta0, aspat_p_theta.5, aspat_p_theta1 ,
+                  aspat_pa_theta0,  aspat_pa_theta.5 ,aspat_pa_theta1,
+                  aspat_paf_theta0, aspat_paf_theta.5, aspat_paf_theta1)
+
+
 
   return(accuracy_stats)
 
