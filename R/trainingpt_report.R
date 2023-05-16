@@ -14,7 +14,7 @@
 #' @examples
 #' trainingpt_report(tpts,  out_dir)
 
-trainingpt_report <- function(tpts, out_dir){
+trainingpt_report <- function(tpts, trans = trans, out_dir){
   # # # testing : GP
   #tpts =  tdat_all
   #out_dir = outDir
@@ -27,10 +27,10 @@ trainingpt_report <- function(tpts, out_dir){
 
   rmarkdown::render(RMD,
                     params = list(tpts = tpts,
+                                  trans = trans,
                                   out_dir = out_dir),
                     output_dir = out_dir)                ## where to save the report
 
-  #file.rename(paste0(out_dir,"/", "trainingpt_report.html"), paste0(out_dir,"/","field_training_pt_report.html"))
   ## open the report
   browseURL(paste0(paste0(out_dir,"/","trainingpt_report.html")))
 }
