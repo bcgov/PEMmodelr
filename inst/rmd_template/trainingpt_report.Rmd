@@ -38,7 +38,7 @@ out_dir <- params$out_dir
 
 ```{r summary, echo = FALSE, include = TRUE}
 
-table(tpts[, "mapunit1"])
+#table(tpts[, "mapunit1"])
 
 # calculate summary of raw training data set
 trDat_sum <- tpts %>%
