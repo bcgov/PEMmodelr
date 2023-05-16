@@ -18,6 +18,7 @@ devtools::load_all("D:\\PEM_DATA\\PEMmodelr")
 library(PEMprepr)
 library(PEMsamplr)
 library(PEMmodelr)
+library(dplyr)
 library(sf)
 
 ```
@@ -39,7 +40,7 @@ mtry <- best_tune$mtry
 min_n <- best_tune$min_n
 
 # select reduced variables
-reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% pull()
+reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% dplyr::pull()
 
 bgc_pts_subzone <- readRDS(file.path(fid$model_inputs0310[2], "model_input_pts.rds"))
 
