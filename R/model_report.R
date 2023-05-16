@@ -15,9 +15,6 @@
 #' trainingpt_report(tpts,  out_dir)
 
 model_report <- function(trDat, acc_output, out_dir){
-  # # # testing : GP
-  #tpts =  tdat_all
-  #out_dir = outDir
 
   ## create destination folder
   ifelse(!dir.exists(file.path(out_dir)),
@@ -31,7 +28,6 @@ model_report <- function(trDat, acc_output, out_dir){
                                   out_dir = out_dir),
                     output_dir = out_dir)                ## where to save the report
 
-  #file.rename(paste0(out_dir,"/", "trainingpt_report.html"), paste0(out_dir,"/","field_training_pt_report.html"))
-  ## open the report
+   ## open the report
   browseURL(paste0(paste0(out_dir,"/","model_report.html")))
 }
