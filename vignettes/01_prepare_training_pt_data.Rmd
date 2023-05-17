@@ -77,7 +77,7 @@ sf::st_write(mpts,file.path(fid$model_inputs0310[2], "training_pts.gpkg"), delet
 
 # run a report to check the coverage of map unist? 
 
-trainingpt_report(mpts )
+#trainingpt_report(mpts )
 
 
 # match to the key and filter for forest and non_forest points
