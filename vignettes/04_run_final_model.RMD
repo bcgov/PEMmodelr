@@ -7,6 +7,18 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+devtools::load_all("D:\\PEM_DATA\\PEMprepr")
+devtools::load_all("D:\\PEM_DATA\\PEMsamplr")
+devtools::load_all("D:\\PEM_DATA\\PEMmodelr")
+
+library(PEMprepr)
+library(PEMsamplr)
+library(PEMmodelr)
+library(dplyr)
+library(sf)
+library(vip)
+
 ```
 
 
@@ -18,9 +30,6 @@ knitr::opts_chunk$set(echo = TRUE)
 fid <- setup_folders("CanyonCreek")
 
 in_dir <- fid$model_inputs0310[2]
-
-#fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix.csv" ))%>%
-#  dplyr::select(target, Pred, fVal)
 
 # set up tuning (applies to all models)
 best_tune <- fread(file.path (in_dir, "best_tuning.csv"))
@@ -53,7 +62,7 @@ mbaldf <- best_balance %>% dplyr::filter(maxmetric == mbal) %>%
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-  #xx <- names(bgc_pts_subzone[2])
+  xx <- names(bgc_pts_subzone[1])
   
   print(xx)
   alldat = bgc_pts_subzone[[xx]]
@@ -78,8 +87,20 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
       sm_ratio = sm_ratio)
   
   # Output model 
-saveRDS(final_model, file.path(outDir, "final_model.rds"))
+  saveRDS(final_model, file.path(outDir, "final_model.rds"))
+
+  # generate model accuracy report
+ final_model_report(final_data, final_model, outDir)
+
 
 })
+
+
+
+
+final_model 
+
+final_model_report(final_data, final_model, outDir)
+
 
 ```

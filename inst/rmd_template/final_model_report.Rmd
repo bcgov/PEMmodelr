@@ -1,0 +1,102 @@
+---
+title: "Final_Model_report"
+output: html_document
+params:
+  final_data: final_data
+  final_model: final_model
+  outDir: outDir
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=FALSE,
+                      warning = FALSE, message = FALSE,
+                      results = 'show',
+                      eval = TRUE)  ## flag eval = false for quick text edits
+
+```
+
+
+```{r setup libs, echo = FALSE}
+
+## Load library
+library(data.table)
+library(rmarkdown)
+library(knitr)
+library(dplyr)
+library(ggplot2)
+
+
+final_data <- params$final_data
+final_model <- params$final_model
+outDir <- params$outDir
+# 
+# ## testing lines
+# final_data <- final_data
+# final_model <- final_data
+# outDir <- outDir
+
+
+```
+
+
+```{r summary, echo = FALSE, include = TRUE}
+
+covs <- names(final_data)[2:length(names(final_data))]
+
+```
+
+
+This model uses the following parameters: 
+
+* **mapunit:** 'mapunit1'
+* **model covariates : ** `r covs`
+
+
+## Response variable: 
+
+The following training points and frequency of points were used in the model.
+
+```{r summary1, echo = FALSE, include = TRUE}
+
+trDat <- final_data
+
+munits <- unique(trDat$mapunit1)
+nf_mapunits <- grep(munits, pattern = "_\\d", value = TRUE, invert = TRUE)
+
+# switch out the predicted Nf units for "nonfor" catergory.
+trDatnf <- trDat %>%
+    dplyr::mutate(mapunit1 = ifelse(mapunit1  %in% nf_mapunits, "nonfor", mapunit1 ))
+
+
+# calculate summary of raw training data set
+trDat_sum <- trDat %>%
+  dplyr::group_by(mapunit1) %>%
+  dplyr::summarise(freq = n()) %>%
+  dplyr::mutate(prop = round(freq/sum(freq),3))
+
+ggplot(trDat, aes(mapunit1)) +
+  geom_bar() + 
+  theme_pem()+
+  theme(axis.text.x = element_text(angle = 90))+
+  scale_fill_discrete_sequential(palette = "Light Grays")
+
+ggplot(trDatnf, aes(mapunit1)) +
+  geom_bar() + 
+  theme_pem()+
+  theme(axis.text.x = element_text(angle = 90))+
+  scale_fill_discrete_sequential(palette = "Light Grays")
+
+```
+
+## Model results summary
+
+```{r, model results, echo = FALSE, eval = TRUE}
+# variable importance plot 
+final_fit  <- workflows::extract_fit_parsnip(final_model)
+#final_fit
+
+xx <- final_fit %>%   vip(num_features = 50)
+xx
+
+
+```
