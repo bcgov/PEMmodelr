@@ -48,6 +48,7 @@ covs <- names(final_data)[2:length(names(final_data))]
 
 
 This model uses the following parameters: 
+
 * **balance option** : `r bgc_bal`
 * **mapunit:** 'mapunit1'
 * **model covariates : ** `r covs`

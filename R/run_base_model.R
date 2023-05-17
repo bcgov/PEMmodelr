@@ -5,6 +5,8 @@
 #' @param mtry numeric. This is the output based on output of hyperparamter model tuning (default = ??)
 #' @param min_n numeric. This is the output based on output of hyperparamter model tuning (default = ??)
 #' @param use.neighbours. if you want to incluse all neighbours in the calculation
+#' @param detailed_output OPTIONAL:TRUE/FALSE if you want to output all raw values this is used to determine optimum theta values
+#' @param out_dir OPTIONAL: only needed if detailed_output = TRUE. location of filepath there detailed outputs to be stored
 #' @return datatable of accuracy metric
 #' @export
 #' @importFrom foreach "%do%" foreach
@@ -17,14 +19,19 @@ run_base_model <- function(train_data,
                            fuzz_matrix,
                            mtry = 14,
                            min_n = 7,
-                           use.neighbours = TRUE){
+                           use.neighbours = TRUE,
+                           detailed_output = FALSE,
+                           out_dir){
 
-# # # # # testing lines:
+# # # # # # testing lines:
 # train_data = train_data
 # fuzz_matrix = fmat
 # mtry = mtry
 # min_n = min_n
 # use.neighbours = TRUE
+# detailed_output = TRUE
+# out_dir = detailed_outdir
+#
 # # # # # end testing lines
 
   # training set - train only on pure calls
@@ -125,6 +132,10 @@ run_base_model <- function(train_data,
       pred_all$mapunit2 = as.factor(pred_all$mapunit2)
 
       print(paste0("generating accuracy metrics for slice:",k))
+
+      if(detailed_output == TRUE){
+        saveRDS(pred_all, file.path(out_dir, paste0("predictions_", k)))
+      }
 
       acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix) %>%
         dplyr::mutate(slice = k)

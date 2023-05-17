@@ -48,17 +48,29 @@ bgc_pts_subzone <- readRDS(file.path(fid$model_inputs0310[2], "model_input_pts.r
 
 ```{r}
 
-# select the balance otption 
+## select the balance otption 
 #[1] "aspat_paf_theta.5" "aspat_paf_theta0" 
 #[3] "aspat_paf_theta1"  "aspatial_sum"     
 #[5] "spat_paf_theta.5"  "spat_paf_theta0"  
 #[7] "spat_paf_theta1"   "spatial_sum"      
 #[9] "overall"  
 
-mbal <-"overall" 
+#mbal <-"overall" 
+mbal <- "raw"
 
-mbaldf <- best_balance %>% dplyr::filter(maxmetric == mbal) %>%
+if(mbal== "raw") {
+  
+  mbaldf <- best_balance %>% dplyr::filter(maxmetric == "overall") %>%
+  select(bgc, balance, ds_ratio, sm_ratio) %>%
+  mutate(balance = "raw",
+         ds_ratio = NA, 
+         sm_ratio = NA)
+} else {
+  
+  mbaldf <- best_balance %>% dplyr::filter(maxmetric == mbal) %>%
   select(bgc, balance, ds_ratio, sm_ratio) 
+
+}
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
@@ -92,15 +104,7 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   # generate model accuracy report
  final_model_report(bgc_bal, final_data, final_model, outDir)
 
-
 })
-
-
-
-
-final_model 
-
-final_model_report(final_data, final_model, outDir)
 
 
 ```

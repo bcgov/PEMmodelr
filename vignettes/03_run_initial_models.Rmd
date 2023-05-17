@@ -61,6 +61,9 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   alldat = bgc_pts_subzone[[xx]]
   
   outDir = file.path(fid$model_draft[2], xx)
+  detailed_outdir <- file.path(outDir, "raw_outputs")
+  dir.create(detailed_outdir)
+
   
   tdat <- alldat %>% mutate(slice = factor(slice))
   tdat <- tdat %>%
@@ -78,7 +81,9 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
       fuzz_matrix = fmat,
       mtry = mtry,
       min_n = min_n,
-      use.neighbours = TRUE )
+      use.neighbours = TRUE, 
+      detailed_output = TRUE, 
+      out_dir = detailed_outdir)
   
   write.csv(baseout, file.path(outDir, "acc_base_results.csv"))
   
@@ -202,4 +207,84 @@ write.csv(best_results, file.path(in_dir, "best_balancing.csv"))
 
 ```
 
+
+
+# Determine optimum Theta value for the metric of choice
+
+
+```{r}
+bgcs <- list.dirs(fid$model_draft[2], recursive = T)
+
+bgcs <- bgcs[endsWith(bgcs,"/raw_outputs")]
+
+
+for(i in bgcs){
+  i = bgcs[1]
+
+  slices <- as.factor(list.files(i))
+
+  theta_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
+
+  k = levels(slices)[1]
+  pred_all <- readRDS(file.path(i, k))
+  
+  theta_vals <-as.factor(c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
+   
+  allthetas <- foreach::foreach(th = levels( theta_vals ),.combine = rbind) %do% {
+  
+    #th = levels(theta_vals)[1]
+    tacc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix, theta = as.numeric(th)) 
+    tacc <- tacc %>% 
+      mutate(theta = th)
+    print("Generated acc metrics for theta:",i)
+  
+    } # end of theta loop  
+  
+  
+  } # end of slice loop 
+  
+
+  acc <- read.csv(file.path(fid$model_draft[2], i,"acc_base_results.csv"))
+  
+  acc <- acc %>% select(aspat_paf_theta0, aspat_paf_theta.5,
+                        aspat_paf_theta1,spat_paf_theta0, spat_paf_theta.5,
+                        spat_paf_theta1 ) %>%
+    distinct()
+  
+
+  acc1 <- acc %>% 
+      summarise(across(aspat_paf_theta0:  spat_paf_theta1, mean)) %>% 
+    gather(.)%>%
+    mutate(type = str_split_fixed(acc1$key, "_paf_", 2)[,1],
+           theta = str_split_fixed(acc1$key, "_paf_", 2)[,2]) %>%
+    select(-key)
+  
+  acc2 <- acc1 %>%
+    spread(., key = theta, value = value)%>%
+    select(type, theta1, theta.5, theta0)
+  
+  # check 1: ARE VALES OF THETA0 ABOVE 0.65
+  
+  
+  
+  
+  
+      
+  library(stringr)
+  
+      str_split_fixed(acc1$key, "_", 2)[,1]
+                                
+                      gsub(acc1$key, pattern = "_paf", value = TRUE )
+  
+   munits <- unique(ref_dat$mapunit1)
+  nf_mapunits <- grep(munits, pattern = "_\\d", value = TRUE, invert = TRUE)
+
+  
+    
+    
+  
+  model_outputs <- list.files(fid$model_draft[2], recursive = TRUE, pattern = "acc_base_results.csv")
+
+
+```
 
