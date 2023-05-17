@@ -56,7 +56,7 @@ run_base_model <- function(train_data,
 
     ref_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
 
-      k = levels(slices)[3]
+      #k = levels(slices)[3]
       #create training set
       ref_train <- ref_dat %>%
         dplyr::filter(!slice %in% k) %>%
