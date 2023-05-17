@@ -6,6 +6,7 @@
 #' and a binary model (RDS) that can then be used to predict on new data.
 #' @param final_data  final model training point
 #' @param final_model  final model object
+#' @param bgc_bal the balance options applied to model
 #' @param  outDir  output directory  This defaults to the project's root directory OR where the RMD script is saved.
 #' @keywords final model report
 #' @import rmarkdown
@@ -14,7 +15,7 @@
 #' @examples
 #' final_model_report(final_data, final_model, outDir)
 
-final_model_report <- function(final_data, final_model, outDir){
+final_model_report <- function(bgc_bal, final_data, final_model, outDir){
 
   ## create destination folder
   ifelse(!dir.exists(file.path(outDir)),
@@ -23,7 +24,8 @@ final_model_report <- function(final_data, final_model, outDir){
   RMD <- system.file("rmd_template", "final_model_report.rmd", package ="PEMmodelr")
 
   rmarkdown::render(RMD,
-                    params = list(final_data = final_data,
+                    params = list(bgc_bal = bgc_bal,
+                                  final_data = final_data,
                                   final_model = final_model,
                                   outDir = outDir),
                     output_dir = outDir)                ## where to save the report

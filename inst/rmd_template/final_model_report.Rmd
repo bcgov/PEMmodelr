@@ -2,6 +2,7 @@
 title: "Final_Model_report"
 output: html_document
 params:
+  bgc_bal: bgc_bal
   final_data: final_data
   final_model: final_model
   outDir: outDir
@@ -25,7 +26,7 @@ library(knitr)
 library(dplyr)
 library(ggplot2)
 
-
+bgc_bal <- params$bgc_bal
 final_data <- params$final_data
 final_model <- params$final_model
 outDir <- params$outDir
@@ -47,7 +48,7 @@ covs <- names(final_data)[2:length(names(final_data))]
 
 
 This model uses the following parameters: 
-
+* **balance option** : `r bgc_bal`
 * **mapunit:** 'mapunit1'
 * **model covariates : ** `r covs`
 
