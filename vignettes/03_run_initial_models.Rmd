@@ -50,21 +50,20 @@ bgc_pts_subzone <- readRDS(file.path(fid$model_inputs0310[2], "model_input_pts.r
 
 This runs the model with no balancing using the parameters generated in 02_prepare_model_inputs.R. 
 
-Alternatively you can run a balance optimize option (see below) 
 
 ```{r pressure, echo=FALSE}
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-  #xx <- names(bgc_pts_subzone[2])
+  xx <- names(bgc_pts_subzone[3])
   
   alldat = bgc_pts_subzone[[xx]]
   
   outDir = file.path(fid$model_draft[2], xx)
-  detailed_outdir <- file.path(outDir, "raw_outputs")
-  dir.create(detailed_outdir)
-
   
+  dir.create(file.path(outDir, "raw_outputs"))
+  detailed_outdir <- file.path(outDir, "raw_outputs")
+ 
   tdat <- alldat %>% mutate(slice = factor(slice))
   tdat <- tdat %>%
     dplyr::select(id, mapunit1, mapunit2, position,
@@ -95,120 +94,6 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 ```
 
 
-
-#  Run the balance optimised version (baysian version)
-
-```{r}
-# # # data lines
-  train_data <- trDat %>%
-    filter(slice != 1)#%>%
-    #dplyr::select(-bgc_cat,-transect_id)
-
-  train_data = as.data.table(trDat)
-  train_data <-  train_data[grep("ICHmc2_",mapunit1),]
-  train_data <- droplevels(train_data)
-
-  fuzz_matrix = fmat
-  num_slice = 4
-   n_iters = 4
-   use.neighbours = TRUE
-   acc_mets = c("spat_paf_theta.5")
-   mtry = 4 #mtry
-   min_n = 7# min_n
-   # end data lines
-
-#metrics_to_run <- c("spat_paf_theta.5")
-
-opt_res <- optimise_balance(train_data, 
-                 fuzz_matrix, 
-                 num_slice = 4, 
-                 n_iters = 4, 
-                 mtry = 14,
-                 min_n = 7, 
-                 use.neighbours = TRUE,
-                 acc_mets = acc_mets)
-
-
-# get best balance: 
-getBestPars(opt_res, N = 5)
-
-```
-
-
-# Alternatively Run the balance optimised version - old version iterate through all combinations 
-
-```{r}
-
-bal_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
-  
-  #xx <- names(bgc_pts_subzone[3])
-  
-  alldat = bgc_pts_subzone[[xx]]
-  
-  outDir = file.path(fid$model_draft[2], xx)
-  
-  tdat <- alldat %>% mutate(slice = factor(slice))
-  tdat <- tdat %>%
-    dplyr::select(id,mapunit1, mapunit2, position,
-      transect_id, tid, slice, any_of(reduced_vars))
-  
-  tdat <- tdat[complete.cases(tdat[, 8:length(tdat)]), ]
-  tdat <- droplevels(tdat)
-  
-  balance_optimisation_iteration(
-      train_data = tdat,
-      fuzz_matrix = fmat,
-      ds_iterations = c(10,20,30,40,50,60,70,80,90),
-      smote_iterations = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,0.8, 0.9),
-      mtry = mtry,
-      min_n = min_n,
-      use.neighbours = TRUE,
-      out_dir = outDir
-  )
-  
-})
-
-```
-
-
-# Consolidate all balancing options and find optimum
-
-
-```{r consolidate acc outputs and graph, echo = FALSE, fig.width=8, fig.height=8}
-
-# combine all balance options into a single data table
-acc_total <- foreach::foreach(xx = names(bgc_pts_subzone), .errorhandling = "pass",.combine = rbind) %do% {
-  #k = data_list[2]
-  # print(k)
-  outDir = file.path(fid$model_draft[2], xx)
-  allacc <- combine_balance_ouputs(outDir)
-  allacc <- allacc %>% dplyr::mutate(bgc = xx)
-  
-}
-
-# select the best metrics for each Bec variant 
-
-bgcs <- unique(as.factor(acc_total$bgc)) %>% droplevels()
-
-best_results <- foreach(b = levels(bgcs), .combine=rbind) %do% {
-  #b <- bgcs[1]
-  
-  acc_bgc <- acc_total %>% dplyr::filter(bgc %in% b)
-  best_metrics <- select_best_acc(acc_bgc) %>% 
-    mutate(bgc = b)
-  
-  best_metrics
-  
-}
-
-in_dir <- fid$model_inputs0310[2]
-
-write.csv(best_results, file.path(in_dir, "best_balancing.csv"))
-
-```
-
-
-
 # Determine optimum Theta value for the metric of choice
 
 
@@ -217,79 +102,25 @@ bgcs <- list.dirs(fid$model_draft[2], recursive = T)
 
 bgcs <- bgcs[endsWith(bgcs,"/raw_outputs")]
 
-
 for(i in bgcs){
-  i = bgcs[1]
-
-  slices <- as.factor(list.files(i))
-
-  theta_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
-
-  #k = levels(slices)[1]
+  i = bgcs[2]
+  acc_out <- generate_theta_metrics(i)
+  write.csv(acc_out, file.path(i, "compiled_theta_results.csv"))
   
-    pred_all <- readRDS(file.path(i, k))
-  
-    theta_vals <-as.factor(c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
-   
-    allthetas <- foreach::foreach(th = levels( theta_vals),.combine = rbind) %do% {
-  # th = levels(theta_vals)[1]
-        tacc <- acc_metrics(pred_all, fuzzmatrx = fmat, theta = as.numeric(th))  %>% 
-            mutate(theta = th)
-    
-    } # end of theta loop  
-  
-     allthetas <- allthetas %>% mutate(slice = k)
-  
-  } # end of slice loop 
-  
-  
-   acc <- theta_acc %>%
-      select(slice, theta, aspat_paf_theta0, aspat_paf_theta.5,
-            aspat_paf_theta1,spat_paf_theta0, spat_paf_theta.5,
-            spat_paf_theta1 ) %>%
-      distinct()
-  
-  write.csv(acc, file.path(bgcs, "compiled_theta_results.csv"))
-   
-  
-acc2 <- acc  %>%
-  pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "value") %>%
-  distinct() 
-
-acc <- acc2 %>% 
-  mutate(type = case_when(
-       stringr::str_detect(accuracy_type, "aspat") ~ "aspatial",
-    stringr::str_detect(accuracy_type, "spat") ~ "spatial")) %>% 
-  mutate(theta_base = case_when(
-    stringr::str_detect(accuracy_type, "theta0") ~ 0,
-    stringr::str_detect(accuracy_type, "theta.5") ~ NA,
-     stringr::str_detect(accuracy_type, "theta1") ~ 1)) %>%
-  mutate(theta_final = ifelse(is.na(theta_base), theta, theta_base))
-
-
-acc_out <- acc %>% select(type, slice, value, theta_final )
-
-acc_out
-
-overall_acc <- ggplot(aes(y = value, x = theta_final), data = acc_out ) + 
-  geom_boxplot() +
-  scale_fill_brewer(type = "qual") +
-  facet_wrap(~type, scales = "free_x")+
-  geom_hline(yintercept = 0.65,linetype ="dashed", color = "black") + 
-  theme_pem_facet() +
-  scale_fill_manual(values=c("grey90", "grey75", "grey50", "grey35","grey10"))+
-  theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") +
-  xlab("Metric") + ylab("Accuracy") + 
-  ylim(0, 1)
+  overall_acc <- ggplot(aes(y = value, x = theta_final), data = acc_out ) + 
+    geom_boxplot() +
+    scale_fill_brewer(type = "qual") +
+    facet_wrap(~type, scales = "free_x")+
+    geom_hline(yintercept = 0.65,linetype ="dashed", color = "black") + 
+    theme_pem_facet() +
+   # scale_fill_manual(values=c("grey90", "grey75", "grey50", "grey35","grey10"))+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") +
+    xlab("Metric") + ylab("Accuracy") + 
+    ylim(0, 1)
 
 overall_acc
   
 }
   
-  
-  
-  
-
-
 ```
 

@@ -41,7 +41,6 @@ rast_list <- rast_list[tolower(gsub(".sdat", "", basename(rast_list))) %in% tolo
 # read in the raster template used for modelling (i.e 5m resolution)
 rstack <- terra::rast(rast_list)
 
-
 subsmpl <- terra::spatSample(rstack, size = 100000, method = "regular", xy = FALSE, na.rm = TRUE) # sample raster
 
 reduced_vars <- reduce_features(subsmpl, cutoff = 0.90, corr_plot = FALSE)
