@@ -225,65 +225,70 @@ for(i in bgcs){
 
   theta_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
 
-  k = levels(slices)[1]
-  pred_all <- readRDS(file.path(i, k))
+  #k = levels(slices)[1]
   
-  theta_vals <-as.factor(c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
+    pred_all <- readRDS(file.path(i, k))
+  
+    theta_vals <-as.factor(c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
    
-  allthetas <- foreach::foreach(th = levels( theta_vals ),.combine = rbind) %do% {
-  
-    #th = levels(theta_vals)[1]
-    tacc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix, theta = as.numeric(th)) 
-    tacc <- tacc %>% 
-      mutate(theta = th)
-    print("Generated acc metrics for theta:",i)
-  
+    allthetas <- foreach::foreach(th = levels( theta_vals),.combine = rbind) %do% {
+  # th = levels(theta_vals)[1]
+        tacc <- acc_metrics(pred_all, fuzzmatrx = fmat, theta = as.numeric(th))  %>% 
+            mutate(theta = th)
+    
     } # end of theta loop  
   
+     allthetas <- allthetas %>% mutate(slice = k)
   
   } # end of slice loop 
   
+  
+   acc <- theta_acc %>%
+      select(slice, theta, aspat_paf_theta0, aspat_paf_theta.5,
+            aspat_paf_theta1,spat_paf_theta0, spat_paf_theta.5,
+            spat_paf_theta1 ) %>%
+      distinct()
+  
+  write.csv(acc, file.path(bgcs, "compiled_theta_results.csv"))
+   
+  
+acc2 <- acc  %>%
+  pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "value") %>%
+  distinct() 
 
-  acc <- read.csv(file.path(fid$model_draft[2], i,"acc_base_results.csv"))
-  
-  acc <- acc %>% select(aspat_paf_theta0, aspat_paf_theta.5,
-                        aspat_paf_theta1,spat_paf_theta0, spat_paf_theta.5,
-                        spat_paf_theta1 ) %>%
-    distinct()
-  
+acc <- acc2 %>% 
+  mutate(type = case_when(
+       stringr::str_detect(accuracy_type, "aspat") ~ "aspatial",
+    stringr::str_detect(accuracy_type, "spat") ~ "spatial")) %>% 
+  mutate(theta_base = case_when(
+    stringr::str_detect(accuracy_type, "theta0") ~ 0,
+    stringr::str_detect(accuracy_type, "theta.5") ~ NA,
+     stringr::str_detect(accuracy_type, "theta1") ~ 1)) %>%
+  mutate(theta_final = ifelse(is.na(theta_base), theta, theta_base))
 
-  acc1 <- acc %>% 
-      summarise(across(aspat_paf_theta0:  spat_paf_theta1, mean)) %>% 
-    gather(.)%>%
-    mutate(type = str_split_fixed(acc1$key, "_paf_", 2)[,1],
-           theta = str_split_fixed(acc1$key, "_paf_", 2)[,2]) %>%
-    select(-key)
-  
-  acc2 <- acc1 %>%
-    spread(., key = theta, value = value)%>%
-    select(type, theta1, theta.5, theta0)
-  
-  # check 1: ARE VALES OF THETA0 ABOVE 0.65
-  
-  
-  
-  
-  
-      
-  library(stringr)
-  
-      str_split_fixed(acc1$key, "_", 2)[,1]
-                                
-                      gsub(acc1$key, pattern = "_paf", value = TRUE )
-  
-   munits <- unique(ref_dat$mapunit1)
-  nf_mapunits <- grep(munits, pattern = "_\\d", value = TRUE, invert = TRUE)
 
+acc_out <- acc %>% select(type, slice, value, theta_final )
+
+acc_out
+
+overall_acc <- ggplot(aes(y = value, x = theta_final), data = acc_out ) + 
+  geom_boxplot() +
+  scale_fill_brewer(type = "qual") +
+  facet_wrap(~type, scales = "free_x")+
+  geom_hline(yintercept = 0.65,linetype ="dashed", color = "black") + 
+  theme_pem_facet() +
+  scale_fill_manual(values=c("grey90", "grey75", "grey50", "grey35","grey10"))+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") +
+  xlab("Metric") + ylab("Accuracy") + 
+  ylim(0, 1)
+
+overall_acc
   
-    
-    
+}
   
-  model_outputs <- list.files(fid$model_draft[2], recursive = TRUE, pattern = "acc_base_results.csv")
+  
+  
+  
 
 
 ```

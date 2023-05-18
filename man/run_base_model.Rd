@@ -9,7 +9,9 @@ run_base_model(
   fuzz_matrix,
   mtry = 14,
   min_n = 7,
-  use.neighbours = TRUE
+  use.neighbours = TRUE,
+  detailed_output = FALSE,
+  out_dir
 )
 }
 \arguments{
@@ -20,6 +22,10 @@ run_base_model(
 \item{mtry}{numeric. This is the output based on output of hyperparamter model tuning (default = ??)}
 
 \item{min_n}{numeric. This is the output based on output of hyperparamter model tuning (default = ??)}
+
+\item{detailed_output}{OPTIONAL:TRUE/FALSE if you want to output all raw values this is used to determine optimum theta values}
+
+\item{out_dir}{OPTIONAL: only needed if detailed_output = TRUE. location of filepath there detailed outputs to be stored}
 
 \item{use.neighbours.}{if you want to incluse all neighbours in the calculation}
 }
