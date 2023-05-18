@@ -23,7 +23,7 @@ run_base_model <- function(train_data,
                            detailed_output = FALSE,
                            out_dir){
 
-# # # # # # testing lines:
+# # # # # # # testing lines:
 # train_data = train_data
 # fuzz_matrix = fmat
 # mtry = mtry
@@ -31,7 +31,7 @@ run_base_model <- function(train_data,
 # use.neighbours = TRUE
 # detailed_output = TRUE
 # out_dir = detailed_outdir
-#
+# #
 # # # # # end testing lines
 
   # training set - train only on pure calls
@@ -136,6 +136,9 @@ run_base_model <- function(train_data,
       if(detailed_output == TRUE){
         saveRDS(pred_all, file.path(out_dir, paste0("predictions_", k)))
       }
+
+      write.csv(pred_all, file.path(out_dir, paste0("predictions.csv")))
+
 
       acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix) %>%
         dplyr::mutate(slice = k)
