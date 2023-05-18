@@ -19,5 +19,4 @@ Generate theta metrics
 bgcs <- list.dirs(fid$model_draft[2], recursive = T)
 bgcs <- bgcs[endsWith(bgcs,"/raw_outputs")]
 generate_theta_metrics(bgcs[1])
-
 }
