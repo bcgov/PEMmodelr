@@ -14,9 +14,19 @@
 #' generate_theta_metrics(bgcs[1])
 #'
 
+
 generate_theta_metrics = function(datafolder) {
 
+    #datafolder = i
+
     slices <- as.factor(list.files(datafolder))
+
+    if("compiled_theta_results.csv" %in% slices){
+      print("compiled theta file already exists, this file will be overwriten")
+      slices = slices[-1] %>% droplevels()
+
+      }
+
     theta_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
     #k = levels(slices)[1]
       pred_all <- readRDS(file.path(datafolder, k))
