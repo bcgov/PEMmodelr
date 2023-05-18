@@ -21,9 +21,9 @@
 acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
 
   # # ##1.  Selects max value between primary and secondary calls
-  # pred_data = pred_all
-  # fuzzmatrx = fuzz_matrix
-  # theta = 0.5
+  #pred_data = pred_all
+  #fuzzmatrx = fuzz_matrix
+  #theta = 0.5
   # # # end testing line
 
   preds = c("id","mapunit1", "mapunit2", ".pred_class")
