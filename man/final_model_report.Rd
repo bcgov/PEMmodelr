@@ -4,9 +4,11 @@
 \alias{final_model_report}
 \title{Generate Final Model summary}
 \usage{
-final_model_report(final_data, final_model, outDir)
+final_model_report(bgc_bal, final_data, final_model, outDir)
 }
 \arguments{
+\item{bgc_bal}{the balance options applied to model}
+
 \item{final_data}{final model training point}
 
 \item{final_model}{final model object}
