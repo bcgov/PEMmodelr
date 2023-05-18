@@ -56,7 +56,7 @@ This model uses the following parameters:
 
 ## Response variable: 
 
-The following training points and frequency of points were used in the model.
+The following training points and frequency of points were used in the model (note this graph includes all points (pure and alternate), only pure points used in the model build.
 
 ```{r summary1, echo = FALSE, include = TRUE}
 
@@ -66,8 +66,33 @@ trDat_sum <- trDat %>%
   dplyr::summarise(freq = n()) %>%
   dplyr::mutate(prop = round(freq/sum(freq),3))
 
-ggplot(trDat, aes(mapunit1)) +
-  geom_bar() + 
+ggplot(trDat_sum , aes(mapunit1, freq)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(mapunit1, freq, label = freq), vjust=-0.25)+
+  theme_pem()+
+  theme(axis.text.x = element_text(angle = 90))+
+  scale_fill_discrete_sequential(palette = "Light Grays")
+
+
+# calculate the values of 
+
+munits <- unique(trDat$mapunit1)
+nf_mapunits <- grep(munits, pattern = "_\\d", value = TRUE, invert = TRUE)
+
+# switch out the predicted Nf units for "nonfor" catergory.
+trDatnf <- trDat %>%
+    dplyr::mutate(mapunit1 = ifelse(mapunit1  %in% nf_mapunits, "nonfor", mapunit1 ))
+
+
+# calculate summary of raw training data set
+trDat_sumnf <- trDatnf  %>%
+  dplyr::group_by(mapunit1) %>%
+  dplyr::summarise(freq = n()) %>%
+  dplyr::mutate(prop = round(freq/sum(freq),3))
+
+ggplot(trDat_sumnf  , aes(mapunit1, freq)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(mapunit1, freq, label = freq), vjust=-0.25)+
   theme_pem()+
   theme(axis.text.x = element_text(angle = 90))+
   scale_fill_discrete_sequential(palette = "Light Grays")
