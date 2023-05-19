@@ -61,9 +61,10 @@ generate_theta_metrics = function(datafolder) {
       stringr::str_detect(accuracy_type, "theta.5") ~ NA,
       stringr::str_detect(accuracy_type, "theta1") ~ 1)) %>%
     dplyr::mutate(theta_final = ifelse(is.na(theta_base), theta, theta_base))
+#Testing
+ # acc_out <- acc %>% dplyr::select(type, slice, value, theta_final)
+  return(acc)
 
-  acc_out <- acc %>% dplyr::select(type, slice, value, theta_final)
-
-return(acc_out)
+  #return(acc_out)
 
 }
