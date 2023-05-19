@@ -137,9 +137,6 @@ run_base_model <- function(train_data,
         saveRDS(pred_all, file.path(out_dir, paste0("predictions_", k)))
       }
 
-      write.csv(pred_all, file.path(out_dir, paste0("predictions.csv")))
-
-
       acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix) %>%
         dplyr::mutate(slice = k)
 

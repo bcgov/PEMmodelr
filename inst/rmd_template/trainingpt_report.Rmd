@@ -3,7 +3,6 @@ title: "trainingpt_report"
 output: html_document
 params:
   tpts: tpts
-  trans: trans
   out_dir: out_dir
 ---
 
@@ -30,7 +29,6 @@ library(dplyr)
 library(ggplot2)
 
 tpts <- params$tpts
-trans <- params$trans
 out_dir <- params$out_dir
 
 ```
