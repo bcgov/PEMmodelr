@@ -21,9 +21,9 @@
 acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
 
   # # ##1.  Selects max value between primary and secondary calls
-  #pred_data = pred_all
-  #fuzzmatrx = fuzz_matrix
-  #theta = 0.5
+  # pred_data = pred_all
+  # fuzzmatrx = fmat
+  # theta = 0.5
   # # # end testing line
 
   preds = c("id","mapunit1", "mapunit2", ".pred_class")
@@ -172,9 +172,9 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
     ) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(
-      spat_p_theta_wt = theta * (1 / no.classes) + (1 - theta) * (spat_p_correct / trans.sum),
-      spat_pa_theta_wt = theta * (1 / no.classes) + (1 - theta) * (spat_pa_correct / trans.sum),
-      spat_paf_theta_wt = theta * (1 / no.classes) + (1 - theta) * (spat_paf_correct / trans.sum),
+      spat_p_theta_wt = theta * (1 / no.classes) + (1 - theta) * (trans.tot / trans.sum),
+      spat_pa_theta_wt = theta * (1 / no.classes) + (1 - theta) * (trans.tot / trans.sum),
+      spat_paf_theta_wt = theta * (1 / no.classes) + (1 - theta) * (trans.tot / trans.sum),
       spat_p_theta_work = spat_p_theta_wt * spat_p,
       spat_pa_theta_work = spat_pa_theta_wt * spat_pa,
       spat_paf_theta_work = spat_paf_theta_wt * spat_paf
