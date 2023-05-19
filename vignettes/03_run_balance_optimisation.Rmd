@@ -131,11 +131,11 @@ bgcs <- list.dirs(fid$model_draft[2], recursive = T)
 
 bgcs <- bgcs[endsWith(bgcs,"/raw_outputs")]
 
-
 for(i in bgcs){
   i = bgcs[2]
 
   acc_out <- generate_theta_metrics(i)
+  
   write.csv(acc_out, file.path(i, "compiled_theta_results.csv"))
   
   overall_acc <- ggplot(aes(y = value, x = theta_final), data = acc_out ) + 
