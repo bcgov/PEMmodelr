@@ -12,7 +12,7 @@
 #' @export
 #'
 #' @examples
-#' prep_final_acc_metrics(bgc_pts_subzone, fid, fmat, mtry, min_n, best_balance, final_model_metric = "overall")
+#' prep_final_acc_metric(bgc_pts_subzone, fid, fmat, mtry, min_n, best_balance, final_model_metric = "overall")
 
 prep_final_acc_metric <- function(bgc_pts_subzone, fid, fmat, mtry, min_n, best_balance, final_model_metric = "overall") {
 
@@ -33,7 +33,8 @@ prep_final_acc_metric <- function(bgc_pts_subzone, fid, fmat, mtry, min_n, best_
     alldat = bgc_pts_subzone[[xx]]
 
     outDir_raw = file.path(fid$model_final[2], xx, "raw")
-    dir.create(outDir_raw)
+    ifelse(!dir.exists(file.path(outDir_raw)),
+           dir.create(file.path(outDir_raw)), FALSE)
 
     tdat <- alldat %>% mutate(slice = factor(slice))
     tdat <- tdat %>%
