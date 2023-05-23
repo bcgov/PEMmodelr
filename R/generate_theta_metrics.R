@@ -16,7 +16,7 @@
 
 generate_theta_metrics = function(datafolder) {
 
-    datafolder = i
+    #datafolder = i
 
     slices <- as.factor(list.files(datafolder))
 
@@ -63,8 +63,9 @@ generate_theta_metrics = function(datafolder) {
     dplyr::mutate(theta_final = ifelse(is.na(theta_base), theta, theta_base))
 #Testing
   acc_out <- acc %>% dplyr::select(type, slice, value, theta_final)
- # return(acc)
 
-  return(acc_out)
+  return(acc)
+
+  #return(acc_out)
 
 }
