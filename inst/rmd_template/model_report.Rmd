@@ -30,8 +30,8 @@ acc_output <- params$acc_output
 out_dir <- params$out_dir
 
 ## testing lines
-#trDat <- train_data
-#acc_output <- baseout
+trDat <- train_data
+acc_output <- baseout
 
 
 ```
@@ -118,15 +118,16 @@ ggplot(trDat_slices, aes(slice, number, fill = type)) +
 #Compare the LOO metrics to test metrics to see model fit 
 
 acc <- acc_output %>%    
-  dplyr::select(mapunit1, slice, spat_p_theta1,spat_p_theta.5, spat_p_theta0,      aspat_p_theta1,aspat_p_theta.5, aspat_p_theta0 ) %>%
+  dplyr::select(mapunit1, slice, kap, acc, spat_p_theta1,spat_p_theta.5, spat_p_theta0, aspat_p_theta1,aspat_p_theta.5, aspat_p_theta0 ) %>%
   distinct() %>% 
   mutate(slice = factor(slice))
 
+library(stringr)
 acc2 <- acc  %>%
   pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "value") %>%
   distinct() %>%
   mutate(type = case_when(
-    accuracy_type %in% c("MLaccuracy", "OOB_inv", "kappa", "mcc") ~ "0_machine",
+    accuracy_type %in% c("acc", "kap") ~ "0_machine",
     stringr::str_detect(accuracy_type, "^spat_p_theta") ~ "1_spatial",
     stringr::str_detect(accuracy_type, "aspat_p_theta") ~ "2_aspatial")) %>%
   filter(!is.na(type)) %>% filter(!accuracy_type == "slice") %>%
@@ -135,11 +136,24 @@ acc2 <- acc  %>%
   mutate(accuracy_type = factor(accuracy_type), type = factor(type))
 
 
-overall_acc <- ggplot(aes(y = value, x = accuracy_type, fill = slice), data = acc2 ) + 
+acc2 <- acc2 %>% 
+     mutate(accuracy_type = str_replace(accuracy_type, "theta1", "theta 1"),
+            accuracy_type = str_replace(accuracy_type, "theta0", "theta 0"),
+            accuracy_type = str_replace(accuracy_type, "aspat_p_theta", "\u0398 "),
+            accuracy_type = str_replace(accuracy_type, "aspat_pa_theta", "\u0398 "),
+            accuracy_type = str_replace(accuracy_type, "spat_paf_theta", "\u0398 "),
+            accuracy_type = str_replace(accuracy_type, "spat_pa_theta", "\u0398 "),
+            accuracy_type = str_replace(accuracy_type, "spat_p_theta", "\u0398 "))
+
+
+overall_acc <- ggplot(aes(y = value, x = factor(accuracy_type, level = c("kap",  "acc",  "Θ  1", "Θ .5", "Θ  0")), fill = slice), data = acc2 ) + 
   geom_boxplot() +
+  
+  #aes(lower=mean-sd,upper=mean+sd,middle=mean,ymin=mean-3*sd,ymax=mean+3*sd),stat="identity"),
+  
   scale_fill_brewer(type = "qual") +
   facet_grid(~type, labeller = labeller(type = 
-                                             c("1_spatial" = "spatial",
+                                             c("0_machine" = "machine", "1_spatial" = "spatial",
                                                "2_aspatial" = "aspatial")), scales = "free_x")+
   geom_hline(yintercept = 0.65,linetype ="dashed", color = "black") + 
   theme_pem_facet() +
@@ -155,7 +169,7 @@ overall_acc
 ```{r, cv vs test overall accuracy with confidence intervals, echo = FALSE, eval = TRUE}
 
 acc_sum <- acc_output %>%
-    dplyr::select(slice,
+    dplyr::select(slice, kap, acc,
         aspat_p_theta0, aspat_p_theta.5, aspat_p_theta1,
         aspat_pa_theta0, aspat_pa_theta.5, aspat_pa_theta1,
         aspat_paf_theta0, aspat_paf_theta.5, aspat_paf_theta1,
@@ -167,25 +181,33 @@ acc_sum <- acc_output %>%
 acc_sum_long <- acc_sum %>%
      pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "value") %>%
 mutate(type = case_when(
+     stringr::str_detect(accuracy_type, "acc") ~ "machine",
+     stringr::str_detect(accuracy_type, "kap") ~ "machine",
      stringr::str_detect(accuracy_type, "aspat_") ~ "aspatial",
      stringr::str_detect(accuracy_type, "spat_") ~ "spatial")) %>%
   mutate(accuracy_type_label = case_when(
+    stringr::str_detect(accuracy_type, "acc") ~ "machine",
+    stringr::str_detect(accuracy_type, "kap") ~ "machine",
     stringr::str_detect(accuracy_type, "_p_") ~ "p",
     stringr::str_detect(accuracy_type, "_pa_") ~ "pa",
     stringr::str_detect(accuracy_type, "_paf_") ~ "paf"))%>%
   mutate(valuepc = value*100)
 
 acc_sum_long <- acc_sum_long %>%
-  mutate(theta = regmatches(acc_sum_long$accuracy_type,regexpr("[0-9]+",acc_sum_long$accuracy_type))) %>%
+  rowwise() %>%
+  mutate(theta = ifelse(type != "machine", str_sub(accuracy_type , start = -1),NA)) %>% #regmatches(acc_sum_long$accuracy_type,regexpr("[0-9]+",acc_sum_long$accuracy_type)), accuracy_type)) %>%
   mutate(theta = case_when(
     theta == 5 ~ '0.5', 
+    accuracy_type == "kap" ~ "kappa",
+    accuracy_type == "acc" ~ "accuracy",
     .default = theta))
 
+  
 
 # # set up order for plots 
 acc_sum_long$type_f = factor(acc_sum_long$accuracy_type_label, levels = c("p" ,"pa", "paf"))
 
-p2 <- ggplot(aes(y = valuepc, x = theta , fill = type), data = acc_sum_long ) +
+p2 <- ggplot(aes(y = valuepc, x = factor(theta, level = c('accuracy', "kappa", "1", "0.5", "0")), fill = type), data = acc_sum_long ) +
    geom_boxplot() +
    facet_wrap(~accuracy_type_label, scales = "free_x", nrow = 1) +
    geom_hline(yintercept = 65,linetype ="dashed", color = "black") +
@@ -215,7 +237,7 @@ mu_long <- mu_acc %>%
 
 
 p4 <- ggplot(aes(y = valuepc, x = mapunit1, fill = accuracy_type), data = mu_long ) + 
-   geom_boxplot() +
+   geom_boxplot(aes(middle = mean(valuepc))) +
    ggtitle("Mapunit accuracy measures ") + 
    xlab("accuracy measure") + ylab("Proportion of Accurate calls") +
   # ylim(-0.05, 1)+
