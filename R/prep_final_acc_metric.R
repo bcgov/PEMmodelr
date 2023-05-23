@@ -8,7 +8,7 @@
 #' @param best_balance output metrics
 #' @param final_model_metric metric to assess best balance, default  = "overall"
 #'
-#' @return
+#' @return TRUE/FALSE
 #' @export
 #'
 #' @examples
@@ -101,7 +101,7 @@ prep_final_acc_metric <- function(bgc_pts_subzone, fid, fmat, mtry, min_n, best_
 
 
   })
-
+  return(TRUE)
 
 } # end of function
 
