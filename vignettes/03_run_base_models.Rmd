@@ -55,7 +55,7 @@ This runs the model with no balancing using the parameters generated in 02_prepa
 
 model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
   
-  #xx <- names(bgc_pts_subzone[1])
+  xx <- names(bgc_pts_subzone[1])
   
   alldat = bgc_pts_subzone[[xx]]
   
@@ -81,7 +81,7 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
       mtry = mtry,
       min_n = min_n,
       use.neighbours = TRUE, 
-      detailed_output = TRUE, 
+      detailed_output = FALSE, 
       out_dir = detailed_outdir)
   
   write.csv(baseout, file.path(outDir, "acc_base_results.csv"))
