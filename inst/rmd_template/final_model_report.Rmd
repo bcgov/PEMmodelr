@@ -25,6 +25,7 @@ library(rmarkdown)
 library(knitr)
 library(dplyr)
 library(ggplot2)
+library(vip)
 
 bgc_bal <- params$bgc_bal
 final_data <- params$final_data
@@ -97,7 +98,7 @@ ggplot(trDatnf, aes(mapunit1)) +
 final_fit  <- workflows::extract_fit_parsnip(final_model)
 #final_fit
 
-xx <- final_fit %>%   vip(num_features = 50)
+xx <- final_fit %>%   vip::vip(num_features = 50)
 xx
 
 
