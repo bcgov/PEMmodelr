@@ -57,7 +57,7 @@ run_final_model <- function(ref_dat, mtry, min_n, ds_ratio = NA, sm_ratio = NA){
     print("applying smoting")
 
     best_recipe <-  recipes::recipe(mapunit1 ~ ., data = ref_dat) %>%
-      themis::step_smote(mapunit1, over_ratio = sm_ratio , neighbors = 10, skip = TRUE)
+      themis::step_smote(mapunit1, over_ratio = sm_ratio , neighbors = 5, skip = TRUE)
 
   }
 
@@ -75,7 +75,7 @@ run_final_model <- function(ref_dat, mtry, min_n, ds_ratio = NA, sm_ratio = NA){
 
     best_recipe <-  recipes::recipe(mapunit1 ~ ., data = ref_dat) %>%
       themis::step_downsample(mapunit1, under_ratio = ds_ratio) %>%
-      themis::step_smote(mapunit1, over_ratio = sm_ratio , neighbors = 2, skip = TRUE)
+      themis::step_smote(mapunit1, over_ratio = sm_ratio , neighbors = 5, skip = TRUE)
 
   }
 
