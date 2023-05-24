@@ -241,7 +241,6 @@ acc_metrics <- function(pred_data, fuzzmatrx, theta = 0.5) {
     dplyr::add_count(.pred_class, name = "pred.tot") %>%
     dplyr::distinct()
 
-
   aspatial_acc_pa <- full_join(aspatial_mapunit, aspatial_pred, by = c("mapunit1" = ".pred_class")) %>%
     dplyr::select(mapunit1, trans.tot, pred.tot) %>%
     dplyr::mutate(across(where(is.numeric), ~ tidyr::replace_na(., 0))) %>%
