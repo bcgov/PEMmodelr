@@ -99,7 +99,7 @@ model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
       sm_ratio = sm_ratio)
   
   # Output model 
-  saveRDS(final_model, file.path(outDir, "final_model.rds"))
+  saveRDS(final_model, file.path(outDir, paste0("final_model",mbal,".rds")))
 
   # generate model accuracy report
  final_model_report(bgc_bal, final_data, final_model, outDir)
