@@ -107,6 +107,10 @@ for(i in bgcs){
   acc_out <- generate_theta_metrics(i)
   write.csv(acc_out, file.path(i, "compiled_theta_results.csv"))
   
+  
+  acc_paf = generate_theta_threshold(acc_out, "paf")
+  
+  
   overall_acc <- ggplot(aes(y = value, x = theta_final), data = acc_out ) + 
     geom_boxplot() +
     scale_fill_brewer(type = "qual") +
