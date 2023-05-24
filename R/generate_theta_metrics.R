@@ -16,30 +16,31 @@
 
 generate_theta_metrics = function(datafolder) {
 
-    #datafolder = i
+  #datafolder = i
 
-    slices <- as.factor(list.files(datafolder))
+  slices <- as.factor(list.files(datafolder))
 
-    if("compiled_theta_results.csv" %in% slices){
-      print("compiled theta file already exists, this file will be overwriten")
-      slices = slices[-1] %>% droplevels()
-      }
+  if("compiled_theta_results.csv" %in% slices){
+    print("compiled theta file already exists, this file will be overwriten")
+    slices = slices[-1] %>% droplevels()
+  }
 
-    theta_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
+  theta_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
     #k = levels(slices)[1]
-      pred_all <- readRDS(file.path(datafolder, k))
-      theta_vals <- as.factor(c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1))
+    pred_all <- readRDS(file.path(datafolder, k))
+    theta_vals <- as.factor(c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1))
 
-      allthetas <- foreach::foreach(th = levels( theta_vals),.combine = rbind) %do% {
-        # th = levels(theta_vals)[1]
-        tacc <- acc_metrics(pred_all, fuzzmatrx = fmat, theta = as.numeric(th))  %>%
-          dplyr::mutate(theta = th)
+    allthetas <- foreach::foreach(th = levels( theta_vals),.combine = rbind) %do% {
+      # th = levels(theta_vals)[1]
+      tacc <- acc_metrics(pred_all, fuzzmatrx = fmat, theta = as.numeric(th))  %>%
+        dplyr::mutate(theta = th)
 
-        } # end of theta loop
+    } # end of theta loop
 
-      allthetas <- allthetas %>% dplyr::mutate(slice = k)
+    allthetas <- allthetas %>% dplyr::mutate(slice = k)
 
-   } # end of slice loop
-    return(allthetas)
+  } # end of slice loop
+
+  return(theta_acc)
 }
 
