@@ -18,5 +18,5 @@ dataframe
 generate_theta_threshold
 }
 \examples{
-generate_theta_threshold(alltheta, "paf")
+generate_theta_threshold(alltheta)
 }
