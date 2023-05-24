@@ -111,7 +111,7 @@ run_base_model <- function(train_data,
 
       final_fit <- tune::extract_fit_parsnip(ref_mod)
 
-      #oob  <- round(ref_mod$fit$fit$fit$prediction.error, 3)
+      oob  <- round(ref_mod$fit$fit$fit$prediction.error, 3)
 
       preds <- predict(ref_mod, ref_test)
 
@@ -138,7 +138,8 @@ run_base_model <- function(train_data,
       }
 
       acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix) %>%
-        dplyr::mutate(slice = k)
+        dplyr::mutate(slice = k,
+                      oob = oob)
 
      #write.csv(acc, "test2_acc.csv")
     }
