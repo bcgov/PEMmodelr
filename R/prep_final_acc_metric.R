@@ -16,20 +16,20 @@
 
 prep_final_acc_metric <- function(bgc_pts_subzone, fid, fmat, mtry, min_n, best_balance, final_model_metric = "overall") {
 
-  # # testing lines
+  # # # testing lines
   # bgc_pts_subzone = bgc_pts_subzone
-  # fid - fid
+  # fid = fid
   # fmat = fmat
   # mtry = min_n
   # min_n = min_n
   # best_balance = best_balance
   # final_model_metric = "overall"
   # # testing lines - end
-
+  #
 
   model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 
-    #xx <- names(bgc_pts_subzone[1])
+    #xx <- names(bgc_pts_subzone[3])
     alldat = bgc_pts_subzone[[xx]]
 
     outDir_raw = file.path(fid$model_final[2], xx, "raw")
@@ -60,36 +60,26 @@ prep_final_acc_metric <- function(bgc_pts_subzone, fid, fmat, mtry, min_n, best_
 
     write.csv(baseout_neighbours, file.path(outDir_raw, "acc_base_results_neighbours.csv"))
 
-    # print("run basic no neighbours model")
-    #
-    # baseout <- run_base_model(
-    #   train_data,
-    #   fuzz_matrix = fmat,
-    #   mtry = mtry,
-    #   min_n = min_n,
-    #   use.neighbours = FALSE,
-    #   detailed_output = FALSE,
-    #   out_dir = outDir_raw)
-    #
-    # write.csv(baseout, file.path(outDir_raw, "acc_base_results_no_neighbours.csv"))
+    print("run basic no neighbours model")
 
-    # extract theta values
+    baseout <- run_base_model(
+      train_data,
+      fuzz_matrix = fmat,
+      mtry = mtry,
+      min_n = min_n,
+      use.neighbours = FALSE,
+      detailed_output = FALSE,
+      out_dir = outDir_raw)
 
-    print("extract theta value")
+    write.csv(baseout, file.path(outDir_raw, "acc_base_results_no_neighbours.csv"))
 
-    balance_raw = file.path(fid$model_draft[2], xx, "raw_outputs", "compiled_theta_results.csv")
-    bal <- read.csv(balance_raw)
-    bal_out <- bal %>%
-      group_by(type, theta_final)%>%
-      summarise(mean = mean(value),
-                q25 = quantile(value, prob= 0.25),
-                q75 = quantile(value, prob = 0.75)) %>%
-      mutate(above_thresh = ifelse(q25 <= 0.65, F, T))
+    # extract theta values thresholds
 
-    write.csv(bal_out, file.path(outDir_raw, "theta_threshold.csv"),row.names = F)
+    balance_raw = file.path(fid$model_draft[2], xx, "theta_thresholds.csv")
+
+    write.csv(balance_raw, file.path(outDir_raw, "theta_threshold.csv"),row.names = F)
 
     # extract best balance option
-
 
     best_bgc_balance <- best_balance %>%
       filter(bgc == xx) %>%
@@ -98,12 +88,10 @@ prep_final_acc_metric <- function(bgc_pts_subzone, fid, fmat, mtry, min_n, best_
       pull(balance)
 
     best_bal_file <- read.csv(file.path(fid$model_draft[2],xx, "balance", paste0("acc_", best_bgc_balance,".csv")))
-    write.csv(best_bal_file, file.path(outDir_raw, "best_balance_acc.csv"),row.names = F)
-
+    write.csv( best_bal_file, file.path(outDir_raw, "best_balance_acc.csv"),row.names = F)
 
   })
   return(TRUE)
 
 } # end of function
-
 
