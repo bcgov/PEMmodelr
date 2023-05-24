@@ -28,7 +28,7 @@ generate_theta_metrics = function(datafolder) {
   theta_acc <- foreach::foreach(k = levels(slices),.combine = rbind) %do% {
     #k = levels(slices)[1]
     pred_all <- readRDS(file.path(datafolder, k))
-    theta_vals <- as.factor(c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1))
+    theta_vals <- as.factor(c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
 
     allthetas <- foreach::foreach(th = levels( theta_vals),.combine = rbind) %do% {
       # th = levels(theta_vals)[1]
