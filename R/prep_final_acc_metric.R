@@ -58,7 +58,7 @@ prep_final_acc_metric <- function(bgc_pts_subzone, fid, fmat, mtry, min_n, best_
       detailed_output = FALSE,
       out_dir = outDir_raw)
 
-    write.csv(baseout_neighbours, file.path(outDir_raw, "acc_base_results_neighbours.csv"))
+    write.csv(baseout_neighbours, file.path(outDir_raw, "acc_base_results_neighbours.csv"), row.names = T)
 
     print("run basic no neighbours model")
 
@@ -71,7 +71,7 @@ prep_final_acc_metric <- function(bgc_pts_subzone, fid, fmat, mtry, min_n, best_
       detailed_output = FALSE,
       out_dir = outDir_raw)
 
-    write.csv(baseout, file.path(outDir_raw, "acc_base_results_no_neighbours.csv"))
+    write.csv(baseout, file.path(outDir_raw, "acc_base_results_no_neighbours.csv"), row.names = T)
 
     # extract theta values thresholds
 
