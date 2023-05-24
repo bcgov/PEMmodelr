@@ -89,7 +89,7 @@ run_base_model <- function(train_data,
         ref_test <- ref_dat %>%
           filter(slice %in% k) %>%
           filter(mapunit1 %in% MU_count$mapunit1) %>%
-          filter(position == "Origin") %>%
+          filter(position == "Orig") %>%
           droplevels()
 
       }
