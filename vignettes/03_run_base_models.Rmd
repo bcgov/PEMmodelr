@@ -104,25 +104,27 @@ bgcs <- bgcs[endsWith(bgcs,"/raw_outputs")]
 
 for(i in bgcs){
   i = bgcs[3]
+  
+  out_dir <- gsub("/raw_outputs", "", i)
+  
   acc_out <- generate_theta_metrics(i)
-  write.csv(acc_out, file.path(i, "compiled_theta_results.csv"))
+  write.csv(acc_out, file.path(out_dir, "compiled_theta_results.csv"))
+ 
+  theta_thresh <- generate_theta_threshold(acc_out)
+  write.csv(theta_thresh, file.path(out_dir, "theta_threshold.csv"))
   
-  
-  acc_paf = generate_theta_threshold(acc_out, "paf")
-  
-  
-  overall_acc <- ggplot(aes(y = value, x = theta_final), data = acc_out ) + 
-    geom_boxplot() +
-    scale_fill_brewer(type = "qual") +
-    facet_wrap(~type, scales = "free_x")+
-    geom_hline(yintercept = 0.65,linetype ="dashed", color = "black") + 
-    theme_pem_facet() +
-   # scale_fill_manual(values=c("grey90", "grey75", "grey50", "grey35","grey10"))+
-    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") +
-    xlab("Metric") + ylab("Accuracy") + 
-    ylim(0, 1)
-
-overall_acc
+#   overall_acc <- ggplot(aes(y = value, x = theta_final), data = acc_out ) + 
+#     geom_boxplot() +
+#     scale_fill_brewer(type = "qual") +
+#     facet_wrap(~type, scales = "free_x")+
+#     geom_hline(yintercept = 0.65,linetype ="dashed", color = "black") + 
+#     theme_pem_facet() +
+#    # scale_fill_manual(values=c("grey90", "grey75", "grey50", "grey35","grey10"))+
+#     theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") +
+#     xlab("Metric") + ylab("Accuracy") + 
+#     ylim(0, 1)
+# 
+# overall_acc
   
 }
   
