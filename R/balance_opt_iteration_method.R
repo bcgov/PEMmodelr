@@ -109,7 +109,7 @@ balance_optimisation_iteration <- function(train_data = train_data,
              ref_test <- ref_dat %>%
                filter(slice %in% k) %>%
                filter(mapunit1 %in% MU_count$mapunit1) %>%
-               filter(position == "Origin") %>%
+               filter(position == "Orig") %>%
                #dplyr::select(-id, -slice,-position, -transect_id) %>%
                droplevels()
 
@@ -139,6 +139,9 @@ balance_optimisation_iteration <- function(train_data = train_data,
            #   #REAL WORK
 
              ref_mod <- possibleError
+
+             oob  <- round(ref_mod$fit$fit$fit$prediction.error, 3)
+
              #ref_mod <- fit(pem_workflow, ref_train)
 
              preds <- predict(ref_mod, ref_test)
@@ -227,7 +230,7 @@ balance_optimisation_iteration <- function(train_data = train_data,
            ref_test <- ref_dat %>%
              filter(slice %in% k) %>%
              filter(mapunit1 %in% MU_count$mapunit1) %>%
-             filter(position == "Origin") %>%
+             filter(position == "Orig") %>%
              #dplyr::select(-id, -slice,-position, -transect_id) %>%
              droplevels()
 
