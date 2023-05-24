@@ -28,7 +28,7 @@ run_base_model <- function(train_data,
 # fuzz_matrix = fmat
 # mtry = mtry
 # min_n = min_n
-# use.neighbours = TRUE
+# use.neighbours = FALSE
 # detailed_output = TRUE
 # out_dir = detailed_outdir
 # #

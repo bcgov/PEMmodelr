@@ -36,5 +36,5 @@ TRUE/FALSE
 prepare final accuracy metrics
 }
 \examples{
-prep_final_acc_metrics(bgc_pts_subzone, fid, fmat, mtry, min_n, best_balance, final_model_metric = "overall")
+prep_final_acc_metric(bgc_pts_subzone, fid, fmat, mtry, min_n, best_balance, final_model_metric = "overall")
 }

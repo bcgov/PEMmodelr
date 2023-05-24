@@ -103,7 +103,7 @@ bgcs <- list.dirs(fid$model_draft[2], recursive = T)
 bgcs <- bgcs[endsWith(bgcs,"/raw_outputs")]
 
 for(i in bgcs){
-  #i = bgcs[3]
+  i = bgcs[3]
   acc_out <- generate_theta_metrics(i)
   write.csv(acc_out, file.path(i, "compiled_theta_results.csv"))
   
