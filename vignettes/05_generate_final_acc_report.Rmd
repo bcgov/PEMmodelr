@@ -4,27 +4,245 @@ author: "G. Perkins"
 date: "2023-05-24"
 output: html_document
 ---
+```{r}
+# generate final accuracy statistics
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+devtools::load_all("D:\\PEM_DATA\\PEMprepr")
+devtools::load_all("D:\\PEM_DATA\\PEMsamplr")
+devtools::load_all("D:\\PEM_DATA\\PEMmodelr")
+
+library(PEMprepr)
+library(PEMmodelr)
+library(dplyr)
+library(stringr)
+
+fid <- setup_folders("Deception_AOI")
+
+in_dir <- fid$model_inputs0310[2]
+
+fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix.csv" ))%>%
+  dplyr::select(target, Pred, fVal)
+
+# set up tuning (applies to all models)
+best_tune <- fread(file.path (in_dir, "best_tuning.csv"))
+mtry <- best_tune$mtry
+min_n <- best_tune$min_n
+
+# select reduced variables
+reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% pull()
+
+best_balance <- read.csv(file.path(in_dir, "best_balancing.csv"))
+
+bgc_pts_subzone <- readRDS(file.path(fid$model_inputs0310[2], "model_input_pts.rds"))
+
+
+# Outputs required 
+
+# 1: raw model accuracy metrics (with neighbours)
+# 2: raw model accuracy metrics (without neighbours)
+# 3: extract theta values threshold for each metric (p, pa, paf)
+# 4: extract best balance option 
+
+
+prep_final_acc_metric(bgc_pts_subzone, fid, fmat, mtry, min_n, best_balance, final_model_metric = "overall")
+
+# generate basic model statistic 
+
+# for each of the bgcs (add loop here)
+    
+
+output_bgc <- lapply(names(bgc_pts_subzone), function(xx){
+  
+    #xx <- names(bgc_pts_subzone[1])
+    outDir_raw = file.path(fid$model_final[2], xx, "raw")
+    
+    raw_nn <- read.csv(file.path(outDir_raw, "acc_base_results_no_neighbours.csv")) %>%
+      mutate(acc_type = "raw")
+    
+    raw_wn <- read.csv(file.path(outDir_raw, "acc_base_results_neighbours.csv")) %>%
+      mutate(acc_type = "raw_neighbours")
+    
+    bal_wn <- read.csv(file.path(outDir_raw, "best_balance_acc.csv")) %>%
+      mutate(acc_type = "rebalanced") %>%
+      mutate(oob = 0)
+
+  
+    acc_all <- rbind(raw_nn, raw_wn, bal_wn)
+
+    # generate a full table with shows all combinations 
+    
+    noi <-  names(acc_all)[str_detect(names(acc_all),"_theta")]
+
+    acc_all <- acc_all %>%
+      mutate(slice = factor(slice), acc_type = factor(acc_type)) %>% 
+      dplyr::select(acc_type, slice, acc, kap, oob, all_of(noi))%>%
+      distinct()
+
+    acc_all <-  acc_all  %>% 
+      mutate(across(where(is.numeric), ~ . *100)) %>% distinct() %>% 
+      mutate(MLaccuracy = acc,
+             oob = (1-oob)*100,
+             kappa = kap) %>% 
+      dplyr::select(-acc, -kap) 
+
+    library(stringr)
+
+acc_all2 <- acc_all %>% 
+  pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "value") %>%
+  distinct() %>% 
+  mutate(type_sa = case_when(
+    str_detect(accuracy_type, "aspat_") ~ "proportional",
+    str_detect(accuracy_type, "spat_") ~ "spatial")) %>%
+mutate(type = case_when(
+    accuracy_type %in% c("MLaccuracy","kappa", "oob") ~ "0_machine",
+    str_detect(accuracy_type, "^aspat_paf_") ~ "3_fuzzy_p+a",
+    str_detect(accuracy_type, "^aspat_pa_") ~ "2_p+alternate",
+    str_detect(accuracy_type, "^aspat_p_") ~ "1_primary",
+    str_detect(accuracy_type, "^spat_p_") ~ "1_primary",
+    str_detect(accuracy_type, "^spat_pa_") ~ "2_p+alternate",
+    str_detect(accuracy_type, "^spat_paf_") ~ "3_fuzzy_p+a")) %>% 
+  filter(!is.na(type)) %>% filter(!accuracy_type == "slice") %>% 
+  mutate(accuracy_type = str_replace(accuracy_type, "theta1", "theta 1"),
+         accuracy_type = str_replace(accuracy_type, "aspat_p_theta", "\u0398 "),
+         accuracy_type = str_replace(accuracy_type, "aspat_pa_theta", "\u0398 "),
+         accuracy_type = str_replace(accuracy_type, "aspat_paf_theta", "\u0398 "),
+        accuracy_type = str_replace(accuracy_type, "spat_paf_theta", "\u0398 "),
+         accuracy_type = str_replace(accuracy_type, "spat_pa_theta", "\u0398 "),
+         accuracy_type = str_replace(accuracy_type, "spat_p_theta", "\u0398 "))
+  
+
+  write.csv(acc_all2, file.path(fid$model_final[2], xx, "results_summary.csv"), row.names = F)
+
+  }) 
+
+
+
+  # generate a summary table ## Still to do: 
+
+
+  # generate a basic plot (raw, raw_neighbours)
+
+plots_bgc <- lapply(names(bgc_pts_subzone), function(xx){
+  
+ # xx <- names(bgc_pts_subzone[1])
+  
+  acc_all <- read.csv(file.path(fid$model_final[2], xx, "results_summary.csv"))
+  # plot  raw vs raw_neighbours
+  
+  acc <- acc_all %>% filter(type_sa %in% c("spatial","proportional"))
+  #acc <- acc_all2 %>% filter(type_sa == "spatial")
+  
+   acc_sum <- acc %>%
+    dplyr::group_by(acc_type, type, accuracy_type,type_sa) %>%
+    dplyr::summarise(mean = mean(value),
+                   q25 = quantile(value, prob = 0.25),
+                   q75 = quantile(value, prob = 0.75))
+
+  ###Create ggplot graphic
+  overall_acc <- ggplot(aes(y = value, x = accuracy_type, fill = acc_type), data = acc ) + # fill = accuracy_type2
+    geom_boxplot() +
+    scale_fill_brewer(type = "qual") +
+    facet_grid(type_sa~type , labeller = labeller(type = 
+                                                    c("0_machine" = "machine",
+                                                      "1_primary" = "primary",
+                                                      "2_p+alternate" = "alternate",
+                                                      "3_fuzzy_p+a" = "fuzzy")), scales = "free_x") +
+    #ggtitle(main = xx )+
+    geom_hline(yintercept = 65,linetype ="dashed", color = "black") + 
+    #theme_pem_facet() +
+    scale_fill_manual(values=c("grey90", "grey70", "grey50"))+
+    #theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    labs(x = "Metric", y = "Accuracy") +
+    ggtitle(xx)#+
+    #ylim(25, 100)
+  
+  overall_acc 
+  
+  ggsave(file.path(fid$model_final[2], xx,"raw_neighbours_balance.png"), overall_acc , width = 15, height = 10)
+  
+  
+  }) 
+  
+
+
+# Second figure: recreate this for the paper
+
+
+output_bgc <- lapply(names(bgc_pts_subzone), function(xx){
+  
+  xx <- names(bgc_pts_subzone[1])
+  outDir_raw = file.path(fid$model_final[2], xx, "raw")
+  
+  raw_wn <- read.csv(file.path(outDir_raw, "acc_base_results_neighbours.csv")) %>%
+    mutate(acc_type = "raw_neighbours")
+  
+  bal_wn <- read.csv(file.path(outDir_raw, "best_balance_acc.csv")) %>%
+    mutate(acc_type = "rebalanced") %>%
+    mutate(oob = 0)
+  
+  
+  acc_all <- rbind( raw_wn, bal_wn)
+  
+  # generate a full table with shows all combinations 
+  
+  noi <-  names(acc_all)[str_detect(names(acc_all),"_theta")]
+  
+  acc_all <- acc_all %>%
+    mutate(slice = factor(slice), acc_type = factor(acc_type)) %>% 
+    dplyr::select(acc_type, slice, acc, kap, oob, all_of(noi))%>%
+    distinct()
+  
+  acc_all <-  acc_all  %>% 
+    mutate(across(where(is.numeric), ~ . *100)) %>% distinct() %>% 
+    mutate(MLaccuracy = acc,
+           oob = (1-oob)*100,
+           kappa = kap) %>% 
+    dplyr::select(-acc, -kap) 
+  
+  
+  acc_all2 <- acc_all %>% 
+    pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "value") %>%
+    distinct() %>% 
+    mutate(type = case_when(
+      accuracy_type %in% c("MLaccuracy", "oob",  "kappa") ~ "0_machine",
+      str_detect(accuracy_type, "aspat_pa_") ~ "4_aspatial",
+      str_detect(accuracy_type, "^spat_p_") ~ "1_primary",
+      str_detect(accuracy_type, "^spat_pa_") ~ "2_p+alternate",
+      str_detect(accuracy_type, "^spat_paf_") ~ "3_fuzzy_p+a")) %>% 
+    filter(!is.na(type)) %>% filter(!accuracy_type == "slice") %>% 
+    mutate(accuracy_type = str_replace(accuracy_type, "theta1", "theta 1"),
+           accuracy_type = str_replace(accuracy_type, "aspat_pa_theta", "\u0398 "),
+           accuracy_type = str_replace(accuracy_type, "spat_paf_theta", "\u0398 "),
+           accuracy_type = str_replace(accuracy_type, "spat_pa_theta", "\u0398 "),
+           accuracy_type = str_replace(accuracy_type, "spat_p_theta", "\u0398 "))
+  #acc_all2 <- acc_all2 %>% dplyr::filter(bgc == "SBSmc2", balance == "rebalanced") %>% mutate(accuracy_type2 = as.factor(accuracy_type)) %>% droplevels()
+  
+  ###Create ggplot graphic
+  overall_acc <- ggplot(aes(y = value, x = accuracy_type, fill = acc_type), data = acc_all2 ) + # fill = accuracy_type2
+    geom_boxplot() +
+    scale_fill_brewer(type = "qual") +
+    facet_grid( ~ type, labeller = labeller(type = 
+                                              c("0_machine" = "machine",
+                                                "1_primary" = "primary",
+                                                "2_p+alternate" = "alternate",
+                                                "3_fuzzy_p+a" = "fuzzy",
+                                                "4_aspatial" = "proportional (p+a)")), scales = "free_x")+
+    #facet_wrap(~acc_type)+
+    #geom_jitter(position=position_jitter(width=.1), colour = "grey", alpha = 0.8) + 
+    geom_hline(yintercept = 65,linetype ="dashed", color = "black") + 
+    theme_pem_facet() +
+    ggtitle(xx)+
+    #scale_fill_manual(values=c("grey90", "grey70", "grey50"))+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position="none") +
+    xlab("Metric") + ylab("Accuracy") + 
+    ylim(25, 100)
+  
+  
+  overall_acc
+  
+  finalise_facet_plot(overall_acc, "./PEM_standards_manuscripts/outputs/accuracy_raw_vs_balance_no_extras_25limit.png", width_pixels=480,
+                      height_pixels=480)
+})
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
