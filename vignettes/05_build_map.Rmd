@@ -16,11 +16,9 @@ devtools::load_all("D:\\PEM_DATA\\PEMprepr")
 devtools::load_all("D:\\PEM_DATA\\PEMmodelr")
 
 library(PEMprepr)
-#library(PEMsamplr)
 library(PEMmodelr)
-library(dplyr)
-#library(data.table)
-library(tidymodels)
+library(terra)
+library(tidyterra)
 
 fid <- setup_folders("CanyonCreek")
 
@@ -28,299 +26,68 @@ fid <- setup_folders("CanyonCreek")
 
 
 ```{r cars}
-# set up the standard inputs 
 
-in_dir <- fid$model_inputs0310[2]
-
-model_dir <- fid$model_final[2]
-
-
-#fmat <- read.csv(file.path(fid$AOI_dir[2], "fuzzy_matrix.csv" ))%>%
-#  dplyr::select(target, Pred, fVal)
-
-# select reduced variables
-reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% pull()
-
-#cov_dir <- file.path(fid$cov_dir_1020[2], "5m")
-cov_dir <- "D:\\PEM_DATA\\Deception\\Deception_AOI\\Deception_AOI\\10_clean_inputs\\20_covariates\\5m"
-
-rtemplate <- terra::rast(file.path(cov_dir, "template.tif"))
-  
-
-## Build raster stack 
-
-rast_list <- list.files(cov_dir, pattern = ".sdat$|.tif$", full.names = T, recursive = T)
-
-rast_list <- rast_list[tolower(gsub(".sdat$|.tif$", "", basename(rast_list))) %in% tolower(reduced_vars)]
-
-rstack <- terra::rast(rast_list)
-
-
-# make the tile 
-tile_dir <- file.path(model_dir, "tiles")
-if(!dir.exists(file.path(tile_dir))){dir.create(file.path(tile_dir))} 
-
-# generate tiles 
-ntiles <- terra::makeTiles(rtemplate, 500, filename = file.path(tile_dir, "tile_.tif"),  na.rm=FALSE, overwrite = FALSE)
-
-#ntiles <- list.files(tile_dir)
-
-
-
-
-
-# for each bgc 
-
-bgc_list <- list.files(model_dir)
-
-#for(i in bec_zones){
-  bgc <- bgc_list[1]
-  
-  final_dir <- file.path(model_dir,bgc)
-  
-  fmodel <- readRDS(file.path(final_dir, "final_model.rds"))
-
-  rf_fit <- workflows::extract_fit_parsnip(fmodel)
-
-  
-  for (i in ntiles)) {
-
-     # get tile
-     i <- ntiles[7]
-
-     t <- terra::rast(file.path(i))  ## read in tile
-     print(paste("working on ", basename(i), "of", length(ntiles)))
-     print("...")
-
-     print("... loading new data (from rasters)...")
-
-     
-     tvec <- terra::as.polygons(t)
-
-     # add a parameter for probability outputs 
-     #if(prob = TRUE){
-     # this provides a stack with each % for each mapunit
-     # Uses the terra package 
-     tstack <- terra::crop(rstack, tvec)
-     pred <- terra::predict(tstack, rf_fit$fit , na.rm = TRUE)
-     
-     pdfxy <- as.data.frame(pred, xy = TRUE, cells = TRUE)
-     pdf <- pdfxy %>% select(-x, -y)
-     pdfid <-  pdfxy %>% select(x, y)
-     
-     #aa <- pdf[, "max"] <- apply(pdf[, 4:length(pdf)], 1, max)
-     
-     best_class <- colnames(pdf)[apply(pdf[,2:length(pdf)] ,1, which.max)]
-     
-     best_class <- cbind(pdfid, best_class)
-     
-     best_raster <- terra::rast(best_class, type = 'xyz')
-
-     plot(best_raster)
-#
-#
-#
-#     allrasts <- file.path(covdir, res_folder)
-#
-#
-#     tile_size
-#     out_dir
-#
-  
-  
-  
-  
-
-  
-}
-
-
-# model = file.path(outDir, modeltype)
-# cov = rast_list
-# tilesize = 500
-#  outDir = outDir
-
-
-
-
-devtools::load_all("D:\\PEM_DATA\\PEMprepr")
-devtools::load_all("D:\\PEM_DATA\\PEMsamplr")
-devtools::load_all("D:\\PEM_DATA\\PEMmodelr")
-
-library(PEMprepr)
-library(PEMmodelr)
-library(terra)
-
-fid <- setup_folders("Deception_AOI")  
-
-bec_zones <- as.list(list.files(file.path(fid$model_final[2])))
+model_dir <- file.path(fid$model_final[2])
+bec_zones <- as.list(list.files(model_dir))
 
 covdir <- fid$cov_dir_1020[2]
 res_folder = "5m"
 
-template <- terra::rast(file.path(covdir, res_folder, "template.tif"))
-
-# get full raster list 
-rast_list <- list.files(file.path(covdir, res_folder), pattern = ".tif$", full.names = TRUE)
-
 # select reduced variables
 reduced_vars <- read.csv(file.path(fid$model_inputs0310[2],  "reduced_covariate_list.csv")) %>% pull()
 
-# filter based on covariate for model param
+# get full raster list 
+rast_list <- list.files(file.path(covdir, res_folder), pattern = ".tif$", full.names = TRUE)
 rast_list <- rast_list[tolower(gsub(".tif", "", basename(rast_list))) %in% (reduced_vars)]
+rstack <- terra::rast(rast_list)
 
+# generate tiles for mapping 
+
+tile_dir <- file.path(model_dir, "tiles")
+
+if(!dir.exists(file.path(tile_dir))){
+  dir.create(file.path(tile_dir)) 
+  # make tiles (might want to make NA tile )
+  ntiles <- makeTiles(template, 500, filename= file.path(tile_dir, "tile_.tif"),  na.rm=FALSE, overwrite = TRUE)
+}else if(dir.exists(file.path(tile_dir))){
+  ntiles <- list.files(tile_dir, full.names = T)
+}
 
 
 # for each bec zone
-bgcs <- list.dirs(fid$model_final[2], recursive = F,full.names = FALSE)
+bgcs <- list.dirs(model_dir, recursive = F,full.names = FALSE)
+bgcs <- gsub("tiles", '', bgcs)
 
+```
 
-# make tiles (might want to make NA tile )
-dir.create(file.path(fid$model_final[2], "tiles"))
-ntiles <- makeTiles(template, 500, filename= file.path(fid$model_final[2], "tiles", "tile_.tif"),  na.rm=FALSE, overwrite = TRUE)
+# loop through the bgcs 
 
-
-# get full stack 
-rstack <- terra::rast(rast_list)
-
-
+```{r}
 
 map_bgc <- for(b in bgcs){
   
-  b = bgcs[1]
+  #b = bgcs[3]
   
-  mfiles = list.files(file.path(paste0(fid$model_final[2]), b), recursive = TRUE, pattern = "final_model.rds$", full.names = T)
-  mfit = mfiles[1]
-  
-  out_dir <- file.path(fid$model_final[2], b,"map_working")
-  
-  if (!dir.exists(out_dir)){
-    dir.create(file.path(fid$model_final[2], b,"map_working"))
-  }else{
-    print("dir exists")
-  }
-    
- # read in model 
+  mfit = list.files(file.path(model_dir, b), recursive = TRUE, pattern = "final_modelraw.rds$", full.names = T)
+  # mfit = mfiles[1]
   model <- readRDS(file.path(mfit))
-
-  # extract fit 
-  rf_fit <- workflows::extract_fit_parsnip(model)
+  # make the output dir
   
-  a <- 0 ## running total of area complete
-  ta <- sum(as.numeric(length(ntiles)))
+  out_dir <- file.path(model_dir, b,"map")
+  # check if out_dir exists
+  if(!dir.exists(file.path(out_dir))){ dir.create(file.path(out_dir))}
   
-  
-  for (i in ntiles[1:10]) {  
-    
-    # get tile 
-    i <- ntiles[7]
-    out_name <- basename(i)
-    
-    t <- terra::rast(file.path(i))  ## read in tile
-    print(paste("working on ", basename(i), "of", length(ntiles)))
-    print("...")
-    
-    print("... loading new data (from rasters)...")
- 
-    #tvec <- terra::as.polygons(t)
-    
-    tstack <- crop(rstack, t)
-    
-    
-    # fix this to exclude the NAs 
-    
-    is.na(tstack)
-    
-    # this is not woeking here. 
-  
-    
-    
-    ## * Test if tile is empty -------------
-    na_table <- as.data.frame(sapply(tstack, function(x) all(is.na(x))))
-    #na_table
-    ## * determine na counts -- this will be used to restore NA values if tile is run.
-    #na_table$count <- as.data.frame(sapply(tstack, function(x) sum(is.na(x))))[,1]
-    
-    ## If any attribute is empty skip the tile
-    if(any(na_table[,1] == TRUE)) {
-      
-      print("Some variables with all NA values, skipping tile...")
-      
-    } else{
-    
-    # predict 
-    pred <- terra::predict(rf_fit, tstack)
-  
-    rsf <- terra::as.points(tstack, value = T, na.rm = F)
-    r_out <- cbind(rsf[,1], pred)[,-1]
-    ## change the text values to numeric values.
-    r_out$.pred_class.no <- as.numeric(r_out$.pred_class)
-    
-    wkey = 0
-    if (wkey == 0)  {
-      respNames <- levels(r_out$.pred_class) ## this becomes the dictionary to describe the raster values
-      write.csv(respNames, file.path(out_dir, "response_names.csv"), row.names = TRUE)
-      wkey <- 1 ## Change this value so this small is statement does not execute again.
-    }
-
-    out <- terra::rasterize(r_out, field ='.pred_class.no',t)
-    terra::writeRaster(out, paste0(out_dir,"/",out_name))
-    
-    ## * report progress -----
-    a <- a + 1 
-    print(paste(round(a/ta*100,1), "% complete"))
-    print("") ## blank line
-    
-    } 
-  
-  }  #print("All predicted tiles generated")
-
+  predict_map(model, out_dir, tile_size = 500, tile_dir, rstack, probability = FALSE)
+   
 } 
 
-# 
-# # testing x2 
-# 
-# 
-# # get tile
-# i <- ntiles[7]
-# 
-# t <- terra::rast(file.path(i))  ## read in tile
-# print(paste("working on ", basename(i), "of", length(ntiles)))
-# print("...")
-# 
-# print("... loading new data (from rasters)...")
-# 
-# 
-# tvec <- terra::as.polygons(t)
-# 
-# 
-# # add a parameter for probability outputs 
-# #if(prob = TRUE){
-# # this provides a stack with each % for each mapunit
-# # Uses the terra package 
-# tstack <- terra::crop(rstack, tvec)
-# pred <- terra::predict(tstack, rf_fit$fit , na.rm = TRUE)
-# 
-# pdfxy <- as.data.frame(pred, xy = TRUE, cells = TRUE)
-# pdf <- pdfxy %>% select(-x, -y)
-# pdfid <-  pdfxy %>% select(x, y)
-# 
-# #aa <- pdf[, "max"] <- apply(pdf[, 4:length(pdf)], 1, max)
-# 
-# best_class <- colnames(pdf)[apply(pdf[,2:length(pdf)] ,1, which.max)]
-# 
-# best_class <- cbind(pdfid, best_class)
-# 
-# best_raster <- terra::rast(best_class, type = 'xyz')
-# 
-# terra::plot(best_raster)
-# 
-# 
-# 
-# 
-# 
-# 
+```
+
+Merge the maps together 
+
+```{r}
 
 
 
 ```
+

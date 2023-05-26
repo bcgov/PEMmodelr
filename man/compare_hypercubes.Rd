@@ -11,6 +11,7 @@ compare_hypercubes(
   method = "regular",
   type = "subsample",
   bins = 10,
+  bind_width_type = "equiprobable",
   minbin = 1,
   graph_compare = FALSE,
   return_spatial = FALSE,
@@ -37,6 +38,8 @@ compare_hypercubes(
 \item{sample_type}{either "number", "density'}
 
 \item{size}{the number of samples to generate or the density of points in kilometers}
+
+\item{bin_width_type}{bins created by "equalwidth" or "equiprobable"}
 
 \item{min_bin}{the minimum number of points in a bin to be considered adequately sampled}
 }

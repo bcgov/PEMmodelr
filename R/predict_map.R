@@ -1,6 +1,5 @@
 #' Predict Map from model
 #'
-#' @param bgc text name of bgc
 #' @param model rf model file
 #' @param out_dir location to export predicted tiles
 #' @param tile_dir location of template tiles
@@ -14,7 +13,7 @@
 #' @examples
 #' predict_map(rf_fit, out_dir = file.path(fid$model_final[2], "ESSF","map_working"), 500, rstack)
 
-predict_map <- function(bgc, model, out_dir, tile_size = 500, tile_dir, rstack, probability = FALSE){
+predict_map <- function(model, out_dir, tile_size = 500, tile_dir, rstack, probability = FALSE){
   #
   #     bgc = b
   #     model = model

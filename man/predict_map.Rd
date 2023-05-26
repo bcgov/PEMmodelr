@@ -5,7 +5,6 @@
 \title{Predict Map from model}
 \usage{
 predict_map(
-  bgc,
   model,
   out_dir,
   tile_size = 500,
@@ -15,8 +14,6 @@ predict_map(
 )
 }
 \arguments{
-\item{bgc}{text name of bgc}
-
 \item{model}{rf model file}
 
 \item{out_dir}{location to export predicted tiles}
