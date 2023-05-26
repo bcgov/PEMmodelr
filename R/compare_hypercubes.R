@@ -12,6 +12,7 @@
 #' @param size the number of samples to generate or the density of points in kilometers
 #' @param method either "regular" for systematic sampling or "random"
 #' @param bins number of bins to create for each raster layer
+#' @param bin_width_type bins created by "equalwidth" or "equiprobable"
 #' @param graph_compare TRUE/FALSE to generate a ggplot comparing target and sample distibutions for each variable
 #' @param return_spatial TRUE/FALSE to generate of 2 layers ina geopackage showing where there is missing space in the target AOI and source areas from the sample
 #' @param min_bin the minimum number of points in a bin to be considered adequately sampled
@@ -28,7 +29,7 @@
 # library(terra)
 # library(sf)
 # require(tidyverse)
-#
+
 # map <- rast(c("LocalData/rid_level.tif","LocalData/swi_slope.tif",
 #               "LocalData/tpi.tif","LocalData/twi.tif","LocalData/valley_depth_2.tif"))
 #
@@ -42,10 +43,10 @@
 #
 # ###testingt
 # result <- compare_hypercubes(target_hypercube = map, sample_hypercube = thesample, bins = 10)
-
+# i = 1; bins = 10; target_hypercube = map
 
 compare_hypercubes <- function(target_hypercube, sample_hypercube, varlist = "all",
-                               method = "regular", type = "subsample", bins = 10,  minbin = 1,
+                               method = "regular", type = "subsample", bins = 10, bind_width_type = "equiprobable", minbin = 1,
                                graph_compare = FALSE, return_spatial = FALSE,
                                xy = TRUE) { #size = 100000,
 
@@ -129,3 +130,22 @@ compare_hypercubes <- function(target_hypercube, sample_hypercube, varlist = "al
   #       subsmpl <- terra::spatSample(covs , size = size, method = method, xy = TRUE, na.rm = TRUE) # sample raster
   # return(subsmpl)
 }
+
+# require(DataExplorer)
+# DataExplorer::create_report(thesample)
+#
+# thesample$tpi2 <- as.numeric(cut_number(thesample$tpi,10))
+# thesample$tpi3 <- as.numeric(cut(thesample$tpi,10))
+#
+# map2$tpi2 <- as.numeric(cut_number(map2$tpi,10))
+# map2$tpi3 <- as.numeric(cut(map2$tpi,10))
+# DataExplorer::create_report(map2)
+
+# require(tidyterra)
+# ggplot() +
+#   geom_spatraster(data = subset(map,1)) +
+#   facet_wrap(~lyr) +
+#   scale_fill_whitebox_c(
+#     palette = "muted",
+#     na.value = "white"
+#   )
