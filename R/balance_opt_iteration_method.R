@@ -164,8 +164,9 @@ balance_optimisation_iteration <- function(train_data = train_data,
              print(paste0("generating accuracy metrics for slice:",k))
 
              acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix)%>%
-               dplyr::mutate(slice = k)
-            #)
+               dplyr::mutate(slice = k,
+                             oob = oob)
+
            }
 
          } # end of slice loop (downsample only )
@@ -257,8 +258,9 @@ balance_optimisation_iteration <- function(train_data = train_data,
          )
          if(!inherits(possibleError, "error")){
            #REAL WORK
-           ref_mod <- fit(pem_workflow, ref_train)
 
+           ref_mod <- fit(pem_workflow, ref_train)
+           oob  <- round(ref_mod$fit$fit$fit$prediction.error, 3)
            #final_fit <- tune::extract_fit_parsnip(ref_mod)
 
            preds <- predict(ref_mod, ref_test)
@@ -281,7 +283,8 @@ balance_optimisation_iteration <- function(train_data = train_data,
            print(paste0("generating accuracy metrics for slice:",k))
 
            acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix)%>%
-             dplyr::mutate(slice = k)
+             dplyr::mutate(slice = k,
+                           oob = oob)
 
          }# end of error checking loop
 
@@ -379,7 +382,7 @@ balance_optimisation_iteration <- function(train_data = train_data,
              #ref_mod <- fit(pem_workflow, ref_train)
 
              ref_mod <- possibleError
-
+             oob  <- round(ref_mod$fit$fit$fit$prediction.error, 3)
              preds <- predict(ref_mod, ref_test)
 
              pred_all <- cbind(ref_id,.pred_class = preds$.pred_class)
@@ -400,7 +403,8 @@ balance_optimisation_iteration <- function(train_data = train_data,
              print(paste0("generating accuracy metrics for slice:",k))
 
              acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix)%>%
-               dplyr::mutate(slice = k)
+               dplyr::mutate(slice = k,
+                             oob = oob)
              #)
            }
 
