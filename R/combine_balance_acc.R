@@ -16,7 +16,7 @@ combine_balance_ouputs <- function(bal_dir){
   #outDir = file.path(fid$model_draft[2], xx)
   #  end testing
 
-  alldata_list <- list.files(file.path(outDir), full.names = TRUE, pattern = "acc_", recursive = TRUE)
+  alldata_list <- list.files(file.path(bal_dir), full.names = TRUE, pattern = "acc_", recursive = TRUE)
 
   # remove files with no information
   data_list<- alldata_list[file.info(alldata_list)$size>10]
