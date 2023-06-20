@@ -9,6 +9,8 @@ trainingpt_report(tpts, trans = trans, out_dir)
 \arguments{
 \item{tpts}{training points cleaned}
 
+\item{trans}{transects}
+
 \item{out_dir}{output directory  This defaults to the project's root directory OR where the RMD script is saved.}
 }
 \description{

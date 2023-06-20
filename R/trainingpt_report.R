@@ -6,6 +6,7 @@
 #' and a binary model (RDS) that can then be used to predict on new data.
 #'
 #' @param tpts training points cleaned
+#' @param trans transects
 #' @param out_dir  output directory  This defaults to the project's root directory OR where the RMD script is saved.
 #' @keywords training data report
 #' @import rmarkdown
