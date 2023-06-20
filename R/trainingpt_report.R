@@ -15,7 +15,7 @@
 #' @examples
 #' trainingpt_report(tpts,  out_dir)
 
-trainingpt_report <- function(tpts, trans = trans, out_dir){
+trainingpt_report <- function(tpts, trans, out_dir){
   # # # testing : GP
   #tpts =  tdat_all
   #out_dir = outDir

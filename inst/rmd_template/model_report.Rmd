@@ -24,6 +24,7 @@ library(rmarkdown)
 library(knitr)
 library(dplyr)
 library(ggplot2)
+library(PEMmodelr)
 
 trDat <- params$trDat
 acc_output <- params$acc_output

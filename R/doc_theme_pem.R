@@ -22,7 +22,7 @@ library(grid)
 #font_import() ## use this once to load up the fonts to C://Windows/Fonts
 
 ## On Windows machines need to explicitly load specific fonts to use in the scripts
-loadfonts(device = "win")
+#loadfonts(device = "win")
 windowsFonts(`Arial Narrow` = windowsFont("Arial Narrow"))
 windowsFonts(Times=windowsFont("TT Times New Roman"))
 windowsFonts(Helvetica=windowsFont("Helvetica"))
@@ -44,7 +44,7 @@ theme_pem_facet <- function(base_size = 12, base_family = "Helvetica") {
 }
 
 theme_pem_foundation <- function(base_size, base_family) {
-  theme_few(
+  ggthemes::theme_few(
     base_size = base_size,
     base_family = base_family) +
     theme(
