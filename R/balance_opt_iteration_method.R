@@ -5,7 +5,12 @@
 #' @param smote_iterations smote iterations (vector of numbers: 0.1 - 0.9), NA if not using
 #' @param use.neighbours to use all spatial adjoining values, default is FALSE
 #' @param fuzz_matrix fuzzy matrix
+#' @param mtry mtry from best params
+#' @param min_n mtry from best params
+#' @param detailed_output TRUE/FALSE if you want to create outputs for theta calculations
+#' @param out_dir_detailed default is NA, text filepath which is the output location for detailed_output,
 #' @param out_dir location where the balance output files will be stored
+#'
 #' @importFrom magrittr "%>%"
 #' @importFrom foreach foreach
 #' @importFrom dplyr mutate filter select rename rowwise group_by distinct top_n add_count
@@ -22,7 +27,9 @@ balance_optimisation_iteration <- function(train_data = train_data,
                                  min_n = min_n,
                                  fuzz_matrix = fmat,
                                  out_dir = fid$model_inputs0310[2],
-                                 use.neighbours = FALSE){
+                                 use.neighbours = FALSE,
+                                 detailed_output = TRUE,
+                                 out_dir_detailed = NA){
                                  #extrarun = FALSE,
                                  #extradat = NULL,
                                  #downsample = TRUE,
@@ -163,6 +170,10 @@ balance_optimisation_iteration <- function(train_data = train_data,
 
              print(paste0("generating accuracy metrics for slice:",k))
 
+             if(detailed_output == TRUE){
+               saveRDS(pred_all, file.path(out_dir_detailed, paste0("predictions_", k)))
+             }
+
              acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix)%>%
                dplyr::mutate(slice = k,
                              oob = oob)
@@ -281,6 +292,10 @@ balance_optimisation_iteration <- function(train_data = train_data,
            pred_all$mapunit2 = as.factor(pred_all$mapunit2)
 
            print(paste0("generating accuracy metrics for slice:",k))
+
+           if(detailed_output == TRUE){
+             saveRDS(pred_all, file.path(out_dir_detailed, paste0("predictions_", k)))
+           }
 
            acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix)%>%
              dplyr::mutate(slice = k,
@@ -401,6 +416,10 @@ balance_optimisation_iteration <- function(train_data = train_data,
              pred_all$mapunit2 = as.factor(pred_all$mapunit2)
 
              print(paste0("generating accuracy metrics for slice:",k))
+
+             if(detailed_output == TRUE){
+               saveRDS(pred_all, file.path(out_dir_detailed, paste0("predictions_", k)))
+             }
 
              acc <- acc_metrics(pred_all, fuzzmatrx = fuzz_matrix)%>%
                dplyr::mutate(slice = k,

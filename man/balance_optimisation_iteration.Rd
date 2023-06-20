@@ -12,7 +12,9 @@ balance_optimisation_iteration(
   min_n = min_n,
   fuzz_matrix = fmat,
   out_dir = fid$model_inputs0310[2],
-  use.neighbours = FALSE
+  use.neighbours = FALSE,
+  detailed_output = TRUE,
+  out_dir_detailed = NA
 )
 }
 \arguments{
@@ -22,11 +24,19 @@ balance_optimisation_iteration(
 
 \item{smote_iterations}{smote iterations (vector of numbers: 0.1 - 0.9), NA if not using}
 
+\item{mtry}{mtry from best params}
+
+\item{min_n}{mtry from best params}
+
 \item{fuzz_matrix}{fuzzy matrix}
 
 \item{out_dir}{location where the balance output files will be stored}
 
 \item{use.neighbours}{to use all spatial adjoining values, default is FALSE}
+
+\item{detailed_output}{TRUE/FALSE if you want to create outputs for theta calculations}
+
+\item{out_dir_detailed}{default is NA, text filepath which is the output location for detailed_output,}
 }
 \value{
 outputs files directly to folder
