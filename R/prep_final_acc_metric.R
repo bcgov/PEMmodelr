@@ -26,7 +26,6 @@ prep_final_acc_metric <- function(bgc_pts_subzone, fid, fmat, mtry, min_n, best_
   # final_model_metric = "overall"
   # # testing lines - end
   #
-
   model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
 
     #xx <- names(bgc_pts_subzone[3])
@@ -75,23 +74,56 @@ prep_final_acc_metric <- function(bgc_pts_subzone, fid, fmat, mtry, min_n, best_
 
     # extract theta values thresholds
 
-    balance_raw = file.path(fid$model_draft[2], xx, "theta_thresholds.csv")
+    balance_raw = read.csv(file.path(fid$model_draft[2], xx, "theta_threshold.csv"))
 
     write.csv(balance_raw, file.path(outDir_raw, "theta_threshold.csv"),row.names = F)
 
+
+
     # extract best balance option
+    print("run balance with neighbours model")
+
+    best_balance <- read.csv(file.path(fid$model_inputs0310[2], "best_balancing.csv"))
+
 
     best_bgc_balance <- best_balance %>%
       filter(bgc == xx) %>%
-      select( bgc, balance,  maxmetric) %>%
-      filter(maxmetric == final_model_metric)%>%
+      select(bgc, balance,  maxmetric) %>%
+      filter(maxmetric == 'overall')%>%
       pull(balance)
 
     best_bal_file <- read.csv(file.path(fid$model_draft[2],xx, "balance", paste0("acc_", best_bgc_balance,".csv")))
-    write.csv( best_bal_file, file.path(outDir_raw, "best_balance_acc.csv"),row.names = F)
+    write.csv( best_bal_file, file.path(outDir_raw, "best_balance_acc_neighbours.csv"),row.names = F)
+
+    # extract best balance option
+    print("run balance with neighbours model")
+
+    mbaldf <- best_balance %>% dplyr::filter(maxmetric == "overall") %>%
+      select(bgc, balance, ds_ratio, sm_ratio)
+
+    bgc_bal = mbaldf %>% filter(bgc == xx)
+    ds_ratio = bgc_bal %>% pull(ds_ratio)
+    sm_ratio = bgc_bal %>% pull(sm_ratio)
+
+    bal_model <- balance_optimisation_iteration(
+      train_data =  train_data,
+      ds_iterations = ds_ratio,
+      smote_iterations =  sm_ratio,
+      mtry = mtry,
+      min_n = min_n,
+      fuzz_matrix = fmat,
+      out_dir = outDir_raw,
+      use.neighbours = FALSE,
+      detailed_output = FALSE,
+      out_dir_detailed = NA)
 
   })
-  return(TRUE)
+
+
+  best_bal_file <- read.csv(file.path(outDir_raw,"balance", paste0("acc_", best_bgc_balance,".csv")))
+  write.csv( best_bal_file, file.path(outDir_raw, "best_balance_acc_no_neighbours.csv"),row.names = F)
+
+})
+return(TRUE)
 
 } # end of function
-
