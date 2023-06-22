@@ -117,13 +117,10 @@ prep_final_acc_metric <- function(bgc_pts_subzone, fid, fmat, mtry, min_n, best_
       detailed_output = FALSE,
       out_dir_detailed = NA)
 
-  })
-
-
   best_bal_file <- read.csv(file.path(outDir_raw,"balance", paste0("acc_", best_bgc_balance,".csv")))
   write.csv( best_bal_file, file.path(outDir_raw, "best_balance_acc_no_neighbours.csv"),row.names = F)
 
-})
+    })
 return(TRUE)
 
 } # end of function
