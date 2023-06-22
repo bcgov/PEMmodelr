@@ -18,5 +18,5 @@ plot
 Plot Accuracy per mapunit
 }
 \examples{
-acc_plot_mu(baseout)
+acc_plot_mu()
 }

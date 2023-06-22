@@ -115,7 +115,6 @@ ggplot(trDat_slices, aes(slice, number, fill = type)) +
 ## Comparison of leave-one-out model results
 
 ```{r, LOO overall accuracy with confidence intervals, echo = FALSE, eval = TRUE}
-
 #Compare the LOO metrics to test metrics to see model fit 
 
 acc <- acc_output %>%    
@@ -205,8 +204,6 @@ acc_sum_long <- acc_sum_long %>%
     accuracy_type == "oob" ~ "1-oob",
     .default = theta))
 
-  
-
 # # set up order for plots 
 acc_sum_long$type_f = factor(acc_sum_long$accuracy_type_label, levels = c("p" ,"pa", "paf"))
 
@@ -230,23 +227,27 @@ p2
 We can compare map unit accuracy levels to assess under or acceptable performance per map units. 
 
 ```{r generate overall mapunit, echo = FALSE, eval = TRUE}
-mu_acc <- acc_output %>% 
-  dplyr::select(mapunit1, spat_p, spat_pa, spat_paf)
 
-mu_long <- mu_acc %>%
-     pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "value") %>%
-  mutate(accuracy_label = sub(".*_", "", accuracy_type))%>%
-  mutate(valuepc = value*100)
+acc_plot_mu(acc_output, type = "spat")
 
-
-p4 <- ggplot(aes(y = valuepc, x = mapunit1, fill = accuracy_type), data = mu_long ) + 
-   geom_boxplot(aes(middle = mean(valuepc))) +
-   ggtitle("Mapunit accuracy measures ") + 
-   xlab("accuracy measure") + ylab("Proportion of Accurate calls") +
-  # ylim(-0.05, 1)+
-   theme_pem_facet()+ 
-   scale_fill_discrete_sequential(palette = "Light Grays")+
-  theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
-  
-p4
+# 
+# mu_acc <- acc_output %>% 
+#   dplyr::select(mapunit1, spat_p, spat_pa, spat_paf)
+# 
+# mu_long <- mu_acc %>%
+#      pivot_longer(cols = where(is.numeric), names_to = "accuracy_type", values_to = "value") %>%
+#   mutate(accuracy_label = sub(".*_", "", accuracy_type))%>%
+#   mutate(valuepc = value*100)
+# 
+# 
+# p4 <- ggplot(aes(y = valuepc, x = mapunit1, fill = accuracy_type), data = mu_long ) + 
+#    geom_boxplot(aes(middle = mean(valuepc))) +
+#    ggtitle("Mapunit accuracy measures ") + 
+#    xlab("accuracy measure") + ylab("Proportion of Accurate calls") +
+#   # ylim(-0.05, 1)+
+#    theme_pem_facet()+ 
+#    scale_fill_discrete_sequential(palette = "Light Grays")+
+#   theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
+#   
+# p4
 
