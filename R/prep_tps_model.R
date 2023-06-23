@@ -70,7 +70,7 @@ prep_tps_model <- function(cleandat, out_dir = fid$model_inputs0310[2]){
       tdat_all <- tdat[complete.cases(tdat[ ,12:length(tdat)]),]
       #tdat_centre <- tdat_all %>% dplyr::filter(position %in% "Orig")
 
-      PEMsamplr::trainingpt_report(tpts = tdat_all, trans = trans, out_dir = outDir)
+      #PEMsamplr::trainingpt_report(tpts = tdat_all, trans = trans, out_dir = outDir)
 
         })
 
