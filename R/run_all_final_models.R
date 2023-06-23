@@ -12,6 +12,7 @@
 #'
 #' @examples
 #'run_all_final_models(bgc_pts_subzone, best_balance, reduced_vars,mbal = "overall",out_dir = fid$model_final[2])
+
 run_all_final_models <- function(
     bgc_pts_subzone =  bgc_pts_subzone,
     best_balance = best_balance,
