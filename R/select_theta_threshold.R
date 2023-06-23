@@ -12,6 +12,7 @@
 #'
 #' @examples
 #' generate_theta_threshold(alltheta)
+
 generate_theta_threshold <- function(allthetas){
 
   #allthetas = acc_out
