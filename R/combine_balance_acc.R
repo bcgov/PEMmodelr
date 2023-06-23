@@ -117,7 +117,7 @@ select_best_acc <- function(aresults){
 
    best_balance_as <- best_balance  %>%
      dplyr::rowwise()%>%
-     dplyr::mutate(aspatial_sum = (aspat_paf_theta0 +  aspat_paf_theta.5 +  aspat_paf_theta1)/3,
+     dplyr::mutate(aspatial_sum =(aspat_paf_theta0 +  aspat_paf_theta.5 +  aspat_paf_theta1)/3,
             spatial_sum = ( spat_paf_theta0 +  spat_paf_theta.5 +  spat_paf_theta1)/3)
 
    # compare these to raw values (here)

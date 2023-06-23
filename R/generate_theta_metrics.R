@@ -10,15 +10,13 @@
 #' @export
 #'
 #' @examples
-#' bgcs <- list.dirs(fid$model_draft[2], recursive = T)
-#' bgcs <- bgcs[endsWith(bgcs,"/raw_outputs")]
 #' generate_theta_metrics(bgcs[1])
 
 generate_theta_metrics = function(datafolder) {
 
   #datafolder = i
 
-  slices <- as.factor(list.files(datafolder))
+  slices <- as.factor( list.files(datafolder, pattern = "prediction_*"))
 
   if("compiled_theta_results.csv" %in% slices){
     print("compiled theta file already exists, this file will be overwriten")
