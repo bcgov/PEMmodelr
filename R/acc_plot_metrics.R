@@ -12,6 +12,7 @@
 #'
 #' @examples
 #' acc_plot_metrics(acc_output, slice = FALSE)
+#acc_output = yy
 acc_plot_metrics = function(acc_output, slice = FALSE){
 
   if (slice == TRUE) {
