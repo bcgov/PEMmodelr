@@ -25,8 +25,8 @@ predict_map <- function(model, out_dir, tile_size = 500, tile_dir, rstack, proba
 
 
   # extract fit
-  rf_fit <- workflows::extract_fit_parsnip(model)
-  .pred_class<- rf_fit$fit$forest$levels
+  rf_fit <- workflows::extract_fit_engine(model)
+  .pred_class <- rf_fit$forest$levels
   respNames <- as.data.frame(.pred_class) %>%
     mutate(pred_no = seq(1:length(.pred_class)))
 

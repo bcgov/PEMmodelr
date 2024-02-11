@@ -1,0 +1,110 @@
+---
+title: "03_run_final_model"
+author: "W.H. MacKenzie"
+date: "2023-04-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+devtools::load_all("D:\\GitHub\\PEMprepr")
+devtools::load_all("D:\\GitHub\\PEMsamplr")
+devtools::load_all("D:\\GitHub\\PEMmodelr")
+
+library(PEMprepr)
+library(PEMsamplr)
+library(PEMmodelr)
+library(dplyr)
+library(sf)
+library(vip)
+
+```
+
+
+# Run the final model 
+
+```{r cars}
+# set up the standard inputs 
+
+fid <- setup_folders("Deception_AOI")
+
+in_dir <- fid$model_inputs0310[2]
+
+# set up tuning (applies to all models)
+best_tune <- fread(file.path (in_dir, "best_tuning.csv"))
+mtry <- best_tune$mtry
+min_n <- best_tune$min_n
+
+# select reduced variables
+reduced_vars <- read.csv(file.path(in_dir,  "reduced_covariate_list.csv")) %>% pull()
+
+best_balance <- read.csv(file.path(in_dir, "best_balancing.csv"))
+
+
+bgc_pts_subzone <- readRDS(file.path(fid$model_inputs0310[2], "model_input_pts.rds"))
+
+```
+
+```{r}
+
+## select the balance otption 
+#[1] "aspat_paf_theta.5" "aspat_paf_theta0" 
+#[3] "aspat_paf_theta1"  "aspatial_sum"     
+#[5] "spat_paf_theta.5"  "spat_paf_theta0"  
+#[7] "spat_paf_theta1"   "spatial_sum"      
+#[9] "overall"  
+
+mbal <-"overall" 
+#mbal <- "raw"
+
+if(mbal== "raw") {
+  
+  mbaldf <- best_balance %>% dplyr::filter(maxmetric == "overall") %>%
+  select(bgc, balance, ds_ratio, sm_ratio) %>%
+  mutate(balance = "raw",
+         ds_ratio = NA, 
+         sm_ratio = NA)
+} else {
+  
+  mbaldf <- best_balance %>% dplyr::filter(maxmetric == mbal) %>%
+  select(bgc, balance, ds_ratio, sm_ratio) 
+
+}
+
+model_bgc <- lapply(names(bgc_pts_subzone), function(xx) {
+  
+  xx <- names(bgc_pts_subzone[xx])
+  
+  print(xx)
+  alldat = bgc_pts_subzone[[xx]]
+
+  outDir = file.path(fid$model_final[2], xx)
+ 
+  final_data <- alldat %>%
+    dplyr::filter(position == "Orig") %>%
+    dplyr::select(mapunit1, any_of(reduced_vars))
+  
+  final_data <-  final_data[complete.cases(final_data[,2:length(final_data)]),]
+  
+  bgc_bal = mbaldf %>% filter(bgc == xx)
+  ds_ratio = bgc_bal %>% pull(ds_ratio)
+  sm_ratio = bgc_bal %>% pull(sm_ratio)
+  
+  final_model <- run_final_model(
+      final_data,
+      mtry = mtry,
+      min_n = min_n,
+      ds_ratio = ds_ratio, 
+      sm_ratio = sm_ratio)
+  
+  # Output model 
+  saveRDS(final_model, file.path(outDir, paste0("final_model",mbal,".rds")))
+
+  # generate model accuracy report
+ #final_model_report(bgc_bal, final_data, final_model, outDir)
+
+})
+
+
+```

@@ -1,0 +1,203 @@
+---
+title: "05_build_map"
+author: "W.H.MacKenzie"
+date: "2023-03-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r  libraries}
+#remotes::install_github("bcgov/PEMprepr", build_vignettes = TRUE)
+devtools::load_all("D:\\GitHub\\PEMprepr")
+devtools::load_all("D:\\GitHub\\PEMmodelr")
+
+library(PEMprepr)
+library(PEMmodelr)
+library(terra)
+library(tidyterra)
+
+fid <- setup_folders("Deception_AOI")
+
+```
+
+
+```{r cars}
+
+model_dir <- file.path(fid$model_final[2])
+bec_zones <- as.list(list.files(model_dir))
+
+covdir <- fid$cov_dir_1020[2]
+res_folder = "5m"
+
+# select reduced variables
+reduced_vars <- read.csv(file.path(fid$model_inputs0310[2],  "reduced_covariate_list.csv")) %>% pull()
+
+# get full raster list 
+rast_list <- list.files(file.path(covdir, res_folder), pattern = ".tif$", full.names = TRUE)
+rast_list <- rast_list[tolower(gsub(".tif", "", basename(rast_list))) %in% (reduced_vars)]
+rstack <- terra::rast(rast_list)
+template <- terra::rast(rast_list[1])
+# generate tiles for mapping 
+
+tile_dir <- file.path(model_dir, "tiles")
+
+if(!dir.exists(file.path(tile_dir))){
+  dir.create(file.path(tile_dir)) 
+  # make tiles (might want to make NA tile )
+  ntiles <- makeTiles(template, 500, filename= file.path(tile_dir, "tile_.tif"),  na.rm=FALSE, overwrite = TRUE)
+}else if(dir.exists(file.path(tile_dir))){
+  ntiles <- list.files(tile_dir, full.names = T)
+}
+
+
+# for each bec zone
+bgcs <- list.dirs(model_dir, recursive = F,full.names = FALSE)
+bgcs <- gsub("tiles", '', bgcs)
+
+```
+
+# loop through the bgcs 
+
+```{r}
+
+map_bgc <- for(b in bgcs){
+  
+  #b = bgcs[3]
+  
+  mfit = list.files(file.path(model_dir, b), recursive = TRUE, pattern = "final_model.rds$", full.names = T)
+  # mfit = mfiles[1]
+  model <- readRDS(file.path(mfit))
+  # make the output dir
+  
+  out_dir <- file.path(model_dir, b,"map")
+  # check if out_dir exists
+  if(!dir.exists(file.path(out_dir))){ dir.create(file.path(out_dir))}
+  
+  predict_map(model, out_dir, tile_size = 500, tile_dir, rstack, probability = FALSE)
+   
+} 
+
+```
+
+Merge the maps together 
+
+```{r}
+
+bec_shp <- st_read(file.path(fid$shape_dir_1010[2],"bec.gpkg"), quiet = TRUE)%>%
+  dplyr::select(MAP_LABEL)
+  
+map_dir <-
+
+
+## Generate final map by joining BGC maps together
+
+# load bgc layer
+
+bec_shp <- st_read(file.path(shapes_dir, "bec.gpkg"), quiet = TRUE) %>%
+  mutate(BGC_LABEL = gsub(" ","",BGC_LABEL))
+
+aoi <- st_read(file.path(shapes_dir, "AOI.gpkg"), quiet = TRUE)
+
+# read in map and model keys
+map.key  <- read.csv(file.path(AOI_dir, "_MapUnitLegend", 
+                               paste0(AOI, "_MapUnitLegend.csv")), 
+                     stringsAsFactor = FALSE)
+
+
+#map_dir = "D:/PEM_DATA/BEC_DevExchange_Work/Deception_AOI/3_maps_analysis/models/forest/fore_mu_bgc/67"
+#map_dir = "D:/PEM_DATA/BEC_DevExchange_Work/Deception_AOI/3_maps_analysis/models/forest_non_forest/for_nfor/1"
+#map_dir = "D:/PEM_DATA/BEC_DevExchange_Work/Deception_AOI/3_maps_analysis/models/forest/fore_mu_bgc/93"
+
+#map_dir = "E:/temp/PEM_DATA/BEC_DevExchange_Work/BoundaryTSA_AOI/3_maps_analysis/models/forest/fore_mu_bgc/9"
+
+map_dir ="D:/PEM_DATA/BEC_DevExchange_Work/EagleHills_AOI/3_maps_analysis/models/forest/fore_mu_bgc/1"
+
+
+#folders <- as.list(c("ESSFmc", "ESSFmcw", "SBSmc2")) 
+#folders <- as.list(c("ESSFmc","SBSmc2"))
+#folders <- as.list(c("ICHmk1" , "IDFdm1", "ICHxw","MSdm1","ICHdw1","ESSFmh","ICHmw5"))
+folders <- as.list(c("IDFdk1","IDFxh2"))
+
+# step 1:  set up a key for the combined map (includes all the units)
+rkey <- lapply(folders, function (f){
+  
+  keys <- read.csv(file.path(map_dir, f, "response_names.csv")) %>%
+    mutate(model  = f)
+})
+
+rkey <- do.call("rbind", rkey)
+rkey <- rkey %>% dplyr::mutate(map.response = seq(1:length(x)))
+
+
+# Step 2: For each bgc, filter and mask the raster map and update key if needed
+
+combo_map <- lapply(folders, function(f){
+  
+  # f <- folders[[1]]
+  
+  rtemp <- raster(file.path(map_dir, f, "mosaic.tif"))
+  
+  rtemp[is.na(rtemp[])] <- 0 
+  
+  # filter to only predict over bgc
+  bec_filter <- bec_shp %>%
+    filter(BGC_LABEL == f) %>%
+    dplyr::select(BGC_LABEL) 
+  
+  rtemp <- raster::mask(rtemp, as(bec_filter,'Spatial'))
+  
+  subkey <- rkey %>% dplyr::filter(model == f) %>%
+    mutate(mosaic = as.numeric(rownames(.)))
+  
+  # check if the key matches or needs reclassification 
+  if (isTRUE(unique(subkey$mosaic == subkey$map.response))) {
+    
+    print("matching key")
+    
+  } else {
+    
+    print("updating key")
+    
+    m <- subkey %>%
+      mutate(to = as.numeric(X), 
+             from = as.numeric(X)+1) %>%
+      dplyr::select(to, from, map.response) 
+    
+    reclm <-  as.matrix(m, ncol=3, byrow= TRUE)
+    rtemp <-  reclassify(rtemp, reclm, right = FALSE)#, include.lowest=TRUE)
+    
+  }
+  
+  rtemp <- reclassify(rtemp, cbind(-Inf, 0, NA), include.lowest=TRUE)
+  rtemp
+  
+})
+
+# join all the maps together
+
+if(length(folders) == 3) {
+  
+  all_key <- merge(combo_map[[1]], combo_map[[2]], overlap=TRUE)
+  all_key <- merge(all_key, combo_map[[3]], overlap = TRUE)
+  
+} 
+
+all_key <- merge(combo_map[[1]], combo_map[[2]], overlap=TRUE)
+all_key <- merge(all_key, combo_map[[3]], overlap = TRUE)
+all_key <- merge(all_key, combo_map[[4]], overlap = TRUE)
+all_key <- merge(all_key, combo_map[[5]], overlap = TRUE)
+all_key <- merge(all_key, combo_map[[6]], overlap = TRUE)
+all_key <- merge(all_key, combo_map[[7]], overlap = TRUE)
+
+# tidy key and output maps
+rkey <- rkey %>% dplyr::select(x, model, map.response)
+
+writeRaster(all_key, file.path(map_dir, "forest_combo_bgcs.tif"), overwrite = TRUE)
+
+write.csv(rkey, file.path(map_dir, "response_combo_bcgs_key.csv"))
+
+

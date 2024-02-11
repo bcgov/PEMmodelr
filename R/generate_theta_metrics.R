@@ -14,7 +14,7 @@
 
 generate_theta_metrics = function(datafolder) {
 
-  #datafolder = i
+  datafolder = i
 
   slices <- as.factor( list.files(datafolder, pattern = "prediction_*"))
 

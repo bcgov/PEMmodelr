@@ -54,13 +54,13 @@ combine_balance_ouputs <- function(bal_dir){
 select_best_acc <- function(aresults){
 
   # testing
-# aresults <- acc_bgc
+ #aresults <- acc_bgc
   # end testing
 
   # get best output
   best_balance <- aresults %>%
     dplyr::group_by(balance) %>%
-    dplyr::select(balance,aspat_paf_theta1, aspat_paf_theta.5, aspat_paf_theta0, spat_paf_theta1,  spat_paf_theta.5, spat_paf_theta0 ) %>% distinct() %>%
+    dplyr::select(balance,aspat_paf_theta1, aspat_paf_theta.5, aspat_paf_theta0, spat_paf_theta1, spat_paf_theta.5, spat_paf_theta0 ) %>% distinct() %>%
     dplyr::summarise(across(where(is.numeric), mean)) %>%
     dplyr::ungroup()
 
